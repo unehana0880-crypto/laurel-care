@@ -188,6 +188,12 @@ textarea{resize:vertical;line-height:1.6;}
         <input type="date" id="visit-date">
       </div>
     </div>
+    <div class="input-group" style="margin-bottom:12px">
+      <label>고객 이메일 <span style="color:var(--danger)">*</span></label>
+      <input type="email" id="client-email" placeholder="example@email.com">
+      <div class="err-msg" id="err-email">이메일을 입력해 주세요</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px;font-style:italic">* ORI 진단 기록과 연결되는 고유 ID입니다</div>
+    </div>
     <div class="input-row">
       <div class="input-group">
         <label>담당 테라피스트 <span style="color:var(--danger)">*</span></label>
@@ -571,8 +577,11 @@ function validateStep(n){
     let ok=true;
     const name=document.getElementById("client-name").value.trim();
     const th=document.getElementById("therapist-name").value.trim();
+    const email=document.getElementById("client-email").value.trim();
+    const emailOk=email&&/^[^@]+@[^@]+[.][^@]+$/.test(email);
     document.getElementById("err-name").style.display=name?"none":"block"; if(!name)ok=false;
     document.getElementById("err-therapist").style.display=th?"none":"block"; if(!th)ok=false;
+    document.getElementById("err-email").style.display=emailOk?"none":"block"; if(!emailOk)ok=false;
     if(!ok) return false;
     updateVisitBadge();
   }
@@ -599,6 +608,7 @@ function buildSummary(){
     <div class="card result-section">
       <div class="card-title">기본 정보</div>
       <div class="result-row"><span class="result-key">고객명</span><span class="result-val">${document.getElementById("client-name").value||"—"}</span></div>
+      <div class="result-row"><span class="result-key">이메일</span><span class="result-val">${document.getElementById("client-email").value||"—"}</span></div>
       <div class="result-row"><span class="result-key">방문일</span><span class="result-val">${document.getElementById("visit-date").value||"—"}</span></div>
       <div class="result-row"><span class="result-key">테라피스트</span><span class="result-val">${document.getElementById("therapist-name").value||"—"}</span></div>
       <div class="result-row"><span class="result-key">방문 횟수</span><span class="result-val">${document.getElementById("visit-count").value||"—"}</span></div>
@@ -651,6 +661,7 @@ async function finalSave(){
     saved_at: new Date().toISOString(),
     // 기본
     client_name: document.getElementById("client-name").value,
+    client_email: document.getElementById("client-email").value,
     visit_date: document.getElementById("visit-date").value,
     therapist_name: document.getElementById("therapist-name").value,
     visit_count: document.getElementById("visit-count").value,
@@ -699,6 +710,7 @@ function resetAll(){
     tpSkintype:[],tpSkintype2:[],tpGoals:[],careTreatments:[],careReaction:[],careRevisit:[]};
   visualScores={};
   document.getElementById("client-name").value="";
+  document.getElementById("client-email").value="";
   document.getElementById("therapist-name").value="";
   document.getElementById("visit-count").value="";
   document.getElementById("nationality").value="";

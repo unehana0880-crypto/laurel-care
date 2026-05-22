@@ -462,7 +462,7 @@ textarea{resize:vertical;line-height:1.6;}
 </div>
 
 <script>
-const WEBHOOK = "https://script.google.com/macros/s/AKfycbzDk4DFYJB77nIe7bB2DlSikTUI-lIAc31qosmd11QoM19kf4axBR7uNQXXmk79SVglLg/exec";
+const WEBHOOK = "https://script.google.com/macros/s/AKfycbzDk4DFYJB77nIe7bB2DlSikTUI-IIAc31qosmd11QoM19kf4axBR7uNQXXmk79SVglLg/exec";
 
 let step = 0;
 let mode = "input"; // "input" or "search"
@@ -526,7 +526,7 @@ function setSearchType(type) {
   else input.placeholder = "날짜 입력 (예: 2026-05-15)";
 }
 
-// ⭐ NEW: 검색 실행 — POST 방식 (리다이렉트 우회)
+// ⭐ NEW: 검색 실행
 async function doSearch() {
   const query = document.getElementById("search-input").value.trim();
   if(!query){alert("검색어를 입력해 주세요");return;}
@@ -538,18 +538,9 @@ async function doSearch() {
   resultsDiv.innerHTML = '<div class="search-loading">🔍 검색 중...</div>';
 
   try {
-    const payload = {
-      action: "search",
-      section: "CARE",
-      search_type: searchType,
-      search_value: query
-    };
-    
-    const response = await fetch(WEBHOOK, {
-      method: "POST",
-      body: JSON.stringify(payload),
-      headers: { "Content-Type": "text/plain;charset=utf-8" }
-    });
+    const payload = {action:"search", section:"CARE", search_type:searchType, search_value:query};
+    const url = WEBHOOK + "?data=" + encodeURIComponent(JSON.stringify(payload));
+    const response = await fetch(url);
     const data = await response.json();
 
     if(data.status === "ok") {
@@ -558,7 +549,7 @@ async function doSearch() {
       resultsDiv.innerHTML = '<div class="search-empty">⚠ ' + (data.message||"검색 오류") + '</div>';
     }
   } catch(err) {
-    resultsDiv.innerHTML = '<div class="search-empty">⚠ 검색 실패 — ' + err.message + '</div>';
+    resultsDiv.innerHTML = '<div class="search-empty">⚠ 검색 실패 — 네트워크 확인</div>';
     console.error(err);
   } finally {
     btn.disabled = false;
@@ -913,18 +904,18 @@ async function finalSave(){
   };
 
   try{
+    let url;
     if(editMode){
+      // 수정 모드
       payload._row_number = editRowNumber;
       payload.action = "update";
+      url = WEBHOOK + "?data=" + encodeURIComponent(JSON.stringify(payload));
     } else {
-      payload.action = "save";
+      // 새 저장 모드
+      url = WEBHOOK + "?data=" + encodeURIComponent(JSON.stringify(payload));
     }
 
-    const response = await fetch(WEBHOOK, {
-      method: "POST",
-      body: JSON.stringify(payload),
-      headers: { "Content-Type": "text/plain;charset=utf-8" }
-    });
+    const response = await fetch(url);
     const result = await response.json();
 
     if(result.status === "ok"){

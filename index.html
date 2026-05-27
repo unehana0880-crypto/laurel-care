@@ -302,6 +302,12 @@ textarea{resize:vertical;line-height:1.6;}
       <div class="self-complete-icon">✨</div>
       <div class="self-complete-title" id="self-complete-title">Thank you!</div>
       <div class="self-complete-msg" id="self-complete-msg">Your information has been recorded.<br>Please hand the tablet to your therapist for the next step.</div>
+      <!-- ★ Case ID 크게 표시 -->
+      <div id="self-case-id-card" style="margin:16px auto 20px;max-width:340px;background:#C8A96E10;border:2px solid #C8A96E50;border-radius:6px;padding:18px 20px;text-align:center">
+        <div style="font-size:10px;letter-spacing:3px;color:#C8A96E;text-transform:uppercase;margin-bottom:6px" id="self-case-id-label">📋 YOUR CASE ID</div>
+        <div id="self-case-id-display" style="font-size:26px;font-weight:700;letter-spacing:2px;color:#C8A96E;font-family:monospace;margin:6px 0;word-break:break-all">—</div>
+        <div id="self-case-id-name" style="font-size:13px;color:#7A8099;margin-bottom:0"></div>
+      </div>
       <div class="self-summary-box" id="self-summary-box"></div>
       <div style="text-align:center">
         <button class="self-btn-next" onclick="selfHandToTherapist()" data-key="handToTherapist">Hand to therapist →</button>
@@ -1020,6 +1026,10 @@ async function saveSelfCheck(){
   const now = new Date();
   const dateStr = now.getFullYear() + String(now.getMonth()+1).padStart(2,"0") + String(now.getDate()).padStart(2,"0");
   selfSavedCaseId = "CR-" + dateStr + "-" + String(Date.now()).slice(-4);
+
+  // ★ Case ID를 완료 화면에 크게 표시
+  document.getElementById("self-case-id-display").textContent = selfSavedCaseId;
+  document.getElementById("self-case-id-name").textContent = (selfData.name || "") + (selfData.email ? " · " + selfData.email : "");
 
   // 한국어 매핑 (CARE_Data 스키마 호환)
   const skintypeMap = selfData.skintype !== null ? T.ko.skintypeOpts[selfData.skintype] : "";

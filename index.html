@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Laurel Studio — Care Record v2</title>
+<title>Laurel Studio — Care Record v2.1</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&family=Noto+Sans+KR:wght@300;400;500&family=Noto+Sans+Arabic:wght@400;500&family=Noto+Sans+Hebrew:wght@400;500&family=Noto+Sans+JP:wght@400;500&family=Noto+Sans+SC:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -242,8 +242,8 @@ textarea{resize:vertical;line-height:1.6;}
 
 <!-- 모드 선택 바 -->
 <div class="mode-bar" id="mode-bar">
-  <button class="mode-btn self-mode" id="mode-self" onclick="switchMode('self')">👤 고객 자가체크</button>
-  <button class="mode-btn active" id="mode-input" onclick="switchMode('input')">➕ 새 기록 입력</button>
+  <button class="mode-btn self-mode" id="mode-self" onclick="modeSelfClicked()">👤 고객 자가체크</button>
+  <button class="mode-btn active" id="mode-input" onclick="modeInputClicked()">➕ 새 기록 입력</button>
   <button class="mode-btn search-mode" id="mode-search" onclick="switchMode('search')">🔍 기록 검색·수정</button>
 </div>
 
@@ -258,7 +258,7 @@ textarea{resize:vertical;line-height:1.6;}
 
 <div class="main">
 
-<!-- ⭐ NEW: 고객 자가체크 모드 -->
+<!-- ⭐ 고객 자가체크 모드 -->
 <div id="page-self" class="hidden self-page">
   <!-- self-step 0: 언어 선택 -->
   <div id="self-step-0">
@@ -523,6 +523,12 @@ textarea{resize:vertical;line-height:1.6;}
 </div>
 
 <script>
+// ════════════════════════════════════════════════════════════
+//  v2.1 (2026-06-04) 버그 수정
+//  1. 자가체크→테라피스트 전환 시 이전 고객 폼 데이터 오염 → clearFormState()로 완전 초기화
+//  2. 저장 후 editMode/editRowNumber 잔존 → 이전 고객 row 덮어쓰기 → 모드 전환 가드 추가
+//  3. 서버 result.row 무검증 신뢰 → case_id로 실제 row 재확인 (verifyRowNumberByCaseId)
+// ════════════════════════════════════════════════════════════
 const WEBHOOK = "https://script.google.com/macros/s/AKfycbxbdtH3LbWfvbRl1dBt3fXejg2F8QGAipewlatItWh3HgSj_MynIWEvVm-tHiTC5jCLXA/exec";
 const THERAPIST_PASSWORD = "laurel2024";
 
@@ -532,8 +538,9 @@ let editMode = false;
 let editRowNumber = null;
 let editCaseId = null;
 let searchType = "email";
+let lastSaveOk = false; // ★ v2.1: 마지막 저장(append/update) 성공 여부
 
-// ⭐ NEW: 자가체크 상태
+// 자가체크 상태
 let selfLang = "en";
 let selfStep = 0; // 0:lang, 1:basic, 2:skintype, 3:concerns, 4:goals/memo
 let selfData = {
@@ -784,6 +791,30 @@ const T = {
 function t(){ return T[selfLang] || T.en; }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//  ★ v2.1: 모드 버튼 가드
+//  이전 고객의 editMode/row가 남은 채로 다음 고객을 입력해서
+//  이전 기록을 덮어쓰는 사고를 모드 전환 시점에 차단한다
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function modeInputClicked(){
+  if(mode === "input") return;
+  if(editMode && !lastSaveOk){
+    if(!confirm("수정/입력 중인 기록이 있습니다.\n중단하고 새 기록을 시작할까요?")) return;
+  }
+  if(editMode || lastSaveOk){
+    resetAll(); // "새 기록"은 항상 깨끗한 양식 + 빈 edit 상태에서 시작
+  }
+  switchMode("input");
+}
+
+function modeSelfClicked(){
+  if(mode === "self") return;
+  if(editMode && !lastSaveOk){
+    if(!confirm("수정/입력 중인 기록이 있습니다.\n중단하고 고객 자가체크를 시작할까요?")) return;
+  }
+  switchMode("self");
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 //  모드 전환
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 function switchMode(newMode) {
@@ -802,7 +833,7 @@ function switchMode(newMode) {
     document.getElementById("search-input").focus();
   }
   if(mode==="self"){
-    // 자가체크 시작
+    // 자가체크 시작 (★ v2.1: 내부에서 edit 상태도 함께 초기화됨)
     resetSelfCheck();
   }
   window.scrollTo(0,0);
@@ -1096,7 +1127,7 @@ async function saveSelfCheck(){
       throw new Error(result.message || "save failed");
     }
   }catch(err){
-    statusEl.innerHTML = `<span style="color:var(--danger)">⚠ ${lng.saveFailed}<br>${err.message}</span>`;
+    statusEl.innerHTML = `<span style="color:var(--danger)">⚠ ${lng.saveFailed}<br>${err.message}</span><br><button onclick="saveSelfCheck()" style="margin-top:8px;padding:8px 20px;border:1px solid var(--danger);background:transparent;color:var(--danger);border-radius:3px;cursor:pointer;font-family:inherit;font-size:13px">↻ Retry · 다시 시도</button>`;
     selfSavedCaseId = null;
     selfSavedRowNumber = null;
     console.error(err);
@@ -1131,10 +1162,15 @@ function cancelPwd(){
 }
 
 function transitionToTherapistMode(){
+  // ★★★ v2.1 FIX 1: 이전 고객의 테라피스트 평가/케어 기록이 폼에 남아
+  //     다음 고객 기록에 섞여 저장되던 문제 — 폼 전체를 먼저 완전히 비운다
+  clearFormState();
+
   // 입력 모드로 전환 + 자가체크 데이터 자동 채움 + editMode 활성화
   editMode = true;
   editRowNumber = selfSavedRowNumber;
   editCaseId = selfSavedCaseId;
+  lastSaveOk = false;
 
   // 기본 정보 채움
   document.getElementById("client-name").value = selfData.name;
@@ -1166,7 +1202,7 @@ function transitionToTherapistMode(){
   document.body.removeAttribute('dir');
 
   // 모드 전환
-  switchMode("input");
+  switchModeToInputInternal();
   step = 0;
   initAll();
   updateUI();
@@ -1175,6 +1211,47 @@ function transitionToTherapistMode(){
   document.getElementById("self-banner-0").classList.add("show");
   document.getElementById("self-badge").classList.add("show");
   document.getElementById("edit-mode-badge").classList.remove("show");
+
+  // ★★★ v2.1 FIX 3: 서버가 돌려준 row 번호를 그대로 믿지 않고
+  //     방금 저장된 case_id로 실제 row 번호를 재확인한다
+  verifyRowNumberByCaseId();
+}
+
+// 내부 전용: self 모드의 resetSelfCheck를 타지 않고 입력 모드로 전환
+function switchModeToInputInternal(){
+  mode = "input";
+  document.getElementById("mode-input").className = "mode-btn active";
+  document.getElementById("mode-search").className = "mode-btn search-mode";
+  document.getElementById("mode-self").className = "mode-btn self-mode";
+  document.getElementById("tab-bar").style.display = "flex";
+  document.getElementById("nav-bar").style.display = "flex";
+  document.getElementById("page-search").classList.add("hidden");
+  document.getElementById("page-self").classList.add("hidden");
+  for(let i=0;i<=4;i++){
+    document.getElementById(`page-${i}`).classList.toggle("hidden", i!==step);
+  }
+  window.scrollTo(0,0);
+}
+
+// ★ v2.1: case_id로 시트의 실제 row 번호를 재확인 (잘못된 row 업데이트 방지)
+async function verifyRowNumberByCaseId(){
+  if(!editCaseId || !selfData.email) return;
+  try{
+    const payload = {action:"search", section:"CARE", search_type:"email", search_value:selfData.email};
+    const res = await fetch(WEBHOOK + "?data=" + encodeURIComponent(JSON.stringify(payload)));
+    const data = await res.json();
+    if(data.status === "ok" && Array.isArray(data.results)){
+      const hit = data.results.find(r => r.case_id === editCaseId);
+      if(hit && hit._row_number){
+        if(hit._row_number !== editRowNumber){
+          console.warn("⚠ row 번호 불일치 — 저장 응답:", editRowNumber, "→ 실제 시트:", hit._row_number, "(실제 값으로 교정)");
+        }
+        editRowNumber = hit._row_number;
+      }
+    }
+  }catch(e){
+    console.warn("row 재확인 생략 (네트워크):", e);
+  }
 }
 
 function resetSelfCheck(){
@@ -1182,6 +1259,15 @@ function resetSelfCheck(){
   selfData = {name:"",email:"",age:"",gender:"",nationality:"",residence:"",skintype:null,concerns:[],goals:[],memo:""};
   selfSavedCaseId = null;
   selfSavedRowNumber = null;
+  // ★ v2.1 FIX 2: 이전 고객의 수정 상태가 새 자가체크로 새어 들어가지 않도록 완전 초기화
+  editMode = false;
+  editRowNumber = null;
+  editCaseId = null;
+  lastSaveOk = false;
+  document.getElementById("edit-banner-0").classList.remove("show");
+  document.getElementById("self-banner-0").classList.remove("show");
+  document.getElementById("edit-mode-badge").classList.remove("show");
+  document.getElementById("self-badge").classList.remove("show");
   document.getElementById("self-step-0").classList.remove("hidden");
   document.getElementById("self-step-form").classList.add("hidden");
   document.getElementById("self-step-complete").classList.add("hidden");
@@ -1190,7 +1276,7 @@ function resetSelfCheck(){
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  검색 모드 (기존 그대로)
+//  검색 모드
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 function setSearchType(type) {
   searchType = type;
@@ -1268,9 +1354,14 @@ function displaySearchResults(data) {
 function loadRecord(idx) {
   const r = window._searchResults[idx];
   if(!r) return;
+
+  // ★ v2.1: 이전 폼 잔여물 제거 후 기록 로드 (tp-goal-custom 등 누락 필드 오염 방지)
+  clearFormState();
+
   editMode = true;
   editRowNumber = r._row_number;
   editCaseId = r.case_id;
+  lastSaveOk = false;
 
   document.getElementById("client-name").value = r.client_name||"";
   document.getElementById("client-email").value = r.client_email||"";
@@ -1314,7 +1405,7 @@ function loadRecord(idx) {
   });
 
   initAll();
-  switchMode("input");
+  switchModeToInputInternal();
   step = 0;
   updateUI();
   document.getElementById("edit-banner-0").classList.add("show");
@@ -1325,7 +1416,7 @@ function loadRecord(idx) {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  입력 모드 (기존 그대로)
+//  입력 모드
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 function buildRadio(cid, stateKey, options, colorClass){
   const el=document.getElementById(cid); if(!el)return;
@@ -1482,7 +1573,7 @@ function buildSummary(){
 
   let editIndicator = "";
   if(editMode){
-    if(selfSavedCaseId === editCaseId){
+    if(selfSavedCaseId === editCaseId && selfSavedCaseId){
       editIndicator = `<div class="self-banner show" style="margin-bottom:20px"><div class="self-banner-title">✓ 고객 자가체크 → 테라피스트 입력 통합 저장</div><div class="self-banner-detail">Case ID: ${editCaseId} — 고객 입력 + 테라피스트 평가가 같은 row로 저장됩니다</div></div>`;
     } else {
       editIndicator = `<div class="edit-mode-banner show" style="margin-bottom:20px"><div class="edit-mode-banner-title">✎ 수정 모드</div><div class="edit-mode-banner-detail">기존 기록을 업데이트합니다 (Case ID: ${editCaseId||""})</div></div>`;
@@ -1521,6 +1612,12 @@ function buildSummary(){
 async function finalSave(){
   const btn=document.getElementById("final-save-btn");
   const status=document.getElementById("final-save-status");
+
+  // ★ v2.1: 수정 모드인데 row 번호가 없으면 절대 update로 보내지 않음
+  if(editMode && !editRowNumber){
+    status.innerHTML='<span style="color:var(--danger)">⚠ 수정 대상 row를 확인할 수 없습니다. 검색에서 기록을 다시 불러와 주세요.</span>';
+    return;
+  }
 
   btn.textContent="저장 중...";
   btn.disabled=true;
@@ -1582,6 +1679,7 @@ async function finalSave(){
     const result = await response.json();
 
     if(result.status === "ok"){
+      lastSaveOk = true; // ★ v2.1
       btn.textContent = editMode ? "✓ 수정 완료" : "✓ 저장 완료";
       btn.style.background="var(--success)";
       btn.style.borderColor="var(--success)";
@@ -1600,41 +1698,38 @@ async function finalSave(){
   }
 }
 
-function resetAll(){
-  d={}; multi={gender:null,age:null,clientSkintype:null,clientConcerns:[],clientGoals:[],
+// ★ v2.1: 폼·선택 상태 초기화 (edit 상태는 건드리지 않음 — 전환/리셋 양쪽에서 재사용)
+function clearFormState(){
+  d={};
+  multi={gender:null,age:null,clientSkintype:null,clientConcerns:[],clientGoals:[],
     tpSkintype:[],tpSkintype2:[],tpGoals:[],careTreatments:[],careReaction:[],careRevisit:null};
   visualScores={};
+  ["client-name","client-email","therapist-name","nationality","client-memo",
+   "tp-moisture","tp-sebum","tp-sensitivity","tp-goal-custom","tp-notes",
+   "care-products","care-duration","care-next","care-homecare","care-summary"
+  ].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
+  document.getElementById("visit-count").value="";
+  document.getElementById("edit-banner-0").classList.remove("show");
+  document.getElementById("self-banner-0").classList.remove("show");
+  document.getElementById("edit-mode-badge").classList.remove("show");
+  document.getElementById("self-badge").classList.remove("show");
+  const fb=document.getElementById("final-save-btn");
+  fb.textContent="구글 시트에 저장";
+  fb.style.background="";
+  fb.style.borderColor="";
+  fb.disabled=false;
+  document.getElementById("final-save-status").textContent="";
+  document.getElementById("visit-date").value=new Date().toISOString().split("T")[0];
+}
+
+function resetAll(){
+  clearFormState();
   editMode=false;
   editRowNumber=null;
   editCaseId=null;
   selfSavedCaseId=null;
   selfSavedRowNumber=null;
-  document.getElementById("client-name").value="";
-  document.getElementById("client-email").value="";
-  document.getElementById("therapist-name").value="";
-  document.getElementById("visit-count").value="";
-  document.getElementById("nationality").value="";
-  document.getElementById("client-memo").value="";
-  document.getElementById("tp-moisture").value="";
-  document.getElementById("tp-sebum").value="";
-  document.getElementById("tp-sensitivity").value="";
-  document.getElementById("tp-goal-custom").value="";
-  document.getElementById("tp-notes").value="";
-  document.getElementById("care-products").value="";
-  document.getElementById("care-duration").value="";
-  document.getElementById("care-next").value="";
-  document.getElementById("care-homecare").value="";
-  document.getElementById("care-summary").value="";
-  document.getElementById("edit-banner-0").classList.remove("show");
-  document.getElementById("self-banner-0").classList.remove("show");
-  document.getElementById("edit-mode-badge").classList.remove("show");
-  document.getElementById("self-badge").classList.remove("show");
-  document.getElementById("final-save-btn").textContent="구글 시트에 저장";
-  document.getElementById("final-save-btn").style.background="";
-  document.getElementById("final-save-btn").style.borderColor="";
-  document.getElementById("final-save-btn").disabled=false;
-  document.getElementById("final-save-status").textContent="";
-  document.getElementById("visit-date").value=new Date().toISOString().split("T")[0];
+  lastSaveOk=false;
   step=0;
   initAll();
   updateUI();

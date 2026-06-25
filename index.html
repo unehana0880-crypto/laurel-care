@@ -336,6 +336,9 @@ textarea{resize:vertical;line-height:1.6;}
       <input type="text" id="search-input" placeholder="검색어 입력 후 검색 버튼 클릭" onkeypress="if(event.key==='Enter')doSearch()">
       <button class="search-btn" id="search-btn" onclick="doSearch()">🔍 검색하기</button>
     </div>
+    <div class="search-input-row" style="margin-top:10px">
+      <button class="search-btn" style="flex:1;background:#2D5A3D" onclick="loadTodayList()">📋 오늘 방문 고객 목록</button>
+    </div>
   </div>
 
   <div id="search-results"></div>
@@ -545,7 +548,7 @@ let selfLang = "en";
 let selfStep = 0; // 0:lang, 1:basic, 2:skintype, 3:concerns, 4:goals/memo
 let selfData = {
   name:"", email:"", age:"", gender:"", nationality:"", residence:"",
-  skintype:null, concerns:[], goals:[], memo:""
+  skintype:null, concerns:[], goals:[], memo:"", program:"", source:""
 };
 let selfSavedCaseId = null;
 let selfSavedRowNumber = null;
@@ -831,6 +834,7 @@ function switchMode(newMode) {
   }
   if(mode==="search"){
     document.getElementById("search-input").focus();
+    loadTodayList();   // ★ v5.2: 검색모드 진입 시 오늘 목록 자동 표시
   }
   if(mode==="self"){
     // 자가체크 시작 (★ v2.1: 내부에서 edit 상태도 함께 초기화됨)
@@ -938,6 +942,18 @@ function renderSelfStep(){
         </div>
       </div>
       <div class="self-card">
+        <div class="self-q-title" style="font-size:18px">Today's Program <span style="font-size:13px;color:var(--muted)">오늘의 프로그램</span></div>
+        <div class="self-opt-wrap">
+          ${[["시그니처","Signature 시그니처"],["프리미엄","Premium 프리미엄"],["바디","Body 바디"]].map(p=>`<button class="self-opt-btn ${selfData.program===p[0]?'sel':''}" onclick="selfPickProgram('${p[0]}')">${p[1]}</button>`).join("")}
+        </div>
+      </div>
+      <div class="self-card">
+        <div class="self-q-title" style="font-size:18px">How did you book? <span style="font-size:13px;color:var(--muted)">예약 경로</span></div>
+        <div class="self-opt-wrap">
+          ${[["클룩","Klook 클룩"],["워크인","Walk-in 워크인"],["네이버","Naver 네이버"],["인스타그램","Instagram 인스타"],["구글맵","Google Maps 구글맵"]].map(srcOpt=>`<button class="self-opt-btn ${selfData.source===srcOpt[0]?'sel':''}" onclick="selfPickSource('${srcOpt[0]}')">${srcOpt[1]}</button>`).join("")}
+        </div>
+      </div>
+      <div class="self-card">
         <div class="self-q-title" style="font-size:18px">${lng.memo}</div>
         <textarea id="self-memo" rows="4" placeholder="${lng.memoPh}" style="font-size:15px;padding:14px">${selfData.memo}</textarea>
       </div>
@@ -970,6 +986,8 @@ function renderSelfStep(){
 }
 
 function selfPickAge(a){ selfData.age = a; renderSelfStep(); }
+function selfPickProgram(p){ selfData.program = (selfData.program===p?"":p); renderSelfStep(); }
+function selfPickSource(srcVal){ selfData.source = (selfData.source===srcVal?"":srcVal); renderSelfStep(); }
 function selfPickGender(g){ selfData.gender = g; renderSelfStep(); }
 function selfPickSkintype(i){ selfData.skintype = i; renderSelfStep(); }
 function selfToggleConcern(i){
@@ -1094,6 +1112,8 @@ async function saveSelfCheck(){
     client_concerns: concernsMap,
     client_goals: goalsMap,
     client_memo: selfData.memo + (selfData.residence ? "\n[거주지: " + selfData.residence + "]" : "") + "\n[자가체크 언어: " + selfLang + "]",
+    program: selfData.program || "",
+    source: selfData.source || "",
     tp_skintype: "",
     tp_skintype_detail: "",
     tp_moisture: "",
@@ -1256,7 +1276,7 @@ async function verifyRowNumberByCaseId(){
 
 function resetSelfCheck(){
   selfStep = 0;
-  selfData = {name:"",email:"",age:"",gender:"",nationality:"",residence:"",skintype:null,concerns:[],goals:[],memo:""};
+  selfData = {name:"",email:"",age:"",gender:"",nationality:"",residence:"",skintype:null,concerns:[],goals:[],memo:"",program:"",source:""};
   selfSavedCaseId = null;
   selfSavedRowNumber = null;
   // ★ v2.1 FIX 2: 이전 고객의 수정 상태가 새 자가체크로 새어 들어가지 않도록 완전 초기화
@@ -1319,13 +1339,18 @@ async function doSearch() {
   }
 }
 
-function displaySearchResults(data) {
+function displaySearchResults(data, isToday) {
   const resultsDiv = document.getElementById("search-results");
   if(!data.results || data.results.length === 0){
-    resultsDiv.innerHTML = '<div class="search-empty">검색 결과가 없습니다</div>';
+    resultsDiv.innerHTML = isToday
+      ? '<div class="search-empty">오늘 방문하신 고객이 아직 없습니다</div>'
+      : '<div class="search-empty">검색 결과가 없습니다</div>';
+    window._searchResults = [];
     return;
   }
-  let html = `<div style="font-size:12px;color:var(--muted);margin-bottom:16px;font-style:italic">검색 결과 ${data.total}건 (최신 ${data.showing}건 표시)</div>`;
+  let html = isToday
+    ? `<div style="font-size:13px;color:var(--section-edit);margin-bottom:16px;font-weight:600">📋 오늘 방문 ${data.total}명 · 이름을 누르면 기록이 열립니다 ${data.date?("· "+data.date):""}</div>`
+    : `<div style="font-size:12px;color:var(--muted);margin-bottom:16px;font-style:italic">검색 결과 ${data.total}건 (최신 ${data.showing}건 표시)</div>`;
   data.results.forEach((r, idx) => {
     const editInfo = r.edit_count && parseInt(r.edit_count) > 0
       ? `<div class="result-edit-info">✎ ${r.last_edited_by||"-"} · ${(r.last_edited_at||"").split("T")[0]} · 수정 ${r.edit_count}회</div>`
@@ -1342,6 +1367,10 @@ function displaySearchResults(data) {
           <span class="result-meta-item">⏱️ ${r.care_duration||"-"}분</span>
           <span class="result-meta-item">🆔 ${r.case_id||"-"}</span>
         </div>
+        ${(r.program||r.source) ? `<div class="result-meta">
+          ${r.program ? `<span class="result-meta-item">💆 ${r.program}</span>` : ""}
+          ${r.source ? `<span class="result-meta-item">📍 ${r.source}</span>` : ""}
+        </div>` : ""}
         ${editInfo}
         <button class="result-edit-btn">✎ 이 기록 수정하기</button>
       </div>
@@ -1349,6 +1378,26 @@ function displaySearchResults(data) {
   });
   resultsDiv.innerHTML = html;
   window._searchResults = data.results;
+}
+
+// ★ v5.2: 오늘 방문 고객 목록 (action:"today") — 이메일 검색 없이 이름 탭으로 바로 열기
+async function loadTodayList() {
+  const resultsDiv = document.getElementById("search-results");
+  resultsDiv.innerHTML = '<div class="search-loading">📋 오늘 목록 불러오는 중...</div>';
+  try {
+    const payload = {action:"today", section:"CARE"};
+    const url = WEBHOOK + "?data=" + encodeURIComponent(JSON.stringify(payload));
+    const response = await fetch(url);
+    const data = await response.json();
+    if(data.status === "ok") {
+      displaySearchResults(data, true);
+    } else {
+      resultsDiv.innerHTML = '<div class="search-empty">⚠ ' + (data.message||"오류") + '</div>';
+    }
+  } catch(err) {
+    resultsDiv.innerHTML = '<div class="search-empty">⚠ 오늘 목록 불러오기 실패 — 네트워크 확인</div>';
+    console.error(err);
+  }
 }
 
 function loadRecord(idx) {

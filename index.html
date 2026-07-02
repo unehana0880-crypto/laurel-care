@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Laurel Studio — Care Record v2.2</title>
+<title>Laurel Studio — Care Record v2.3 (Session Sheet)</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&family=Noto+Sans+KR:wght@300;400;500&family=Noto+Sans+Arabic:wght@400;500&family=Noto+Sans+Hebrew:wght@400;500&family=Noto+Sans+JP:wght@400;500&family=Noto+Sans+SC:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -526,30 +526,120 @@ textarea{resize:vertical;line-height:1.6;}
 </div>
 
 <script>
-// ════════════════════════════════════════════════════════════
-//  v2.2 (2026-06-30)
-//  · "19세 미만" 연령 구간 추가 (9개 언어 + DATA.ages, 항상 index 0)
-//  · 19세 미만 선택 시에만 보호자 동의 안내 문구 노출 (RTL 대응)
-//  · DATA.ages 엔대시(–) → 하이픈(-) 통일로 T.ko.ageOpts와 정확히 일치
-//  v2.1 (2026-06-04) 버그 수정
-//  1. 자가체크→테라피스트 전환 시 이전 고객 폼 데이터 오염 → clearFormState()로 완전 초기화
-//  2. 저장 후 editMode/editRowNumber 잔존 → 이전 고객 row 덮어쓰기 → 모드 전환 가드 추가
-//  3. 서버 result.row 무검증 신뢰 → case_id로 실제 row 재확인 (verifyRowNumberByCaseId)
-// ════════════════════════════════════════════════════════════
+// ── 세션지(Session Sheet) 텍스트 — EN/KO 우선, 나머지 언어는 EN 폴백 (추후 확장) ──
+const SHEET = {
+  en: {
+    title:"Today's Session Sheet",
+    introGreeting:"{name}, at Laurel Studio every treatment is personalized. We consider the concerns you checked, and your therapist assesses your skin in person to provide the safest and gentlest care — using the devices, ampoules, and products best suited to you. When your skin is weakened, we focus on gentle, restorative care; when it is healthy, we use products that take it one step further.",
+    introHydration:"Our skin is the body's largest protective organ, and continuous hydration is essential to a healthy barrier. Today's care begins by rehydrating and preparing your skin to absorb active ingredients, followed by customized ampoules and serums for your needs. Please relax, close your eyes, and enjoy this calm, skin-healing time.",
+    yourCheck:"What you told us",
+    skinType:"Skin type", concerns:"Concerns", goals:"Goals", program:"Today's program",
+    durationTitle:"Today's care time",
+    durPremium:"Premium — approx. 60–70 minutes",
+    durSignature:"Signature — approx. 50–60 minutes",
+    durBody:"Body — within approx. 90 minutes from now",
+    stepsTitle:"Today's Care Steps",
+    lblProducts:"Products", lblPurpose:"Purpose",
+    steps:[
+      {title:"Step 1 · Deep Cleansing & Exfoliation", products:"Aesthetic Milk Cleanser & PHA", purpose:"Remove impurities and enhance product absorption"},
+      {title:"Step 2 · Deep Hydration Pack + LED Light Therapy", products:"High-concentration jelly-type hydrating pack (a week's worth of hydration; small molecular water particles that absorb effectively)", purpose:"Intense hydration and calming. LED light mask — used in dermatology to enhance absorption and to reduce deep-tissue inflammation"},
+      {title:"Step 3 · Customized Treatment", products:"Personalized ampoules and serums", purpose:"Firming, deep hydration, and nourishment"},
+      {title:"Step 4 · Finishing Touch – Sheet Mask", products:"Personalized aesthetic sheet mask", purpose:"Skin protection and barrier enhancement"},
+      {title:"Step 5 · Final Moisturizing Step", products:"Regenerating moisture cream and sunscreen", purpose:"Seal in hydration and protect skin"}
+    ],
+    tenProducts:"We used 10 types of professional Korean aesthetic products, suitable even for sensitive skin.",
+    specialTitle:"Special Care Items",
+    special:[
+      {name:"Soft Peeling PHA", desc:"A gentle peeling solution for sensitive skin that removes dead skin cells and blackheads. Applied with cotton pads right after cleansing. Use 1–2 times a week to boost glow and ampoule absorption."},
+      {name:"LED Light Mask Therapy", desc:"Improves absorption of topical products and reduces skin inflammation. Supports the skin's self-regeneration and overall improvement."},
+      {name:"PDRN", desc:"DNA fragments that selectively target damaged areas, promoting anti-inflammation, cell proliferation, and tissue regeneration. Consistent use improves pore elasticity and strengthens skin from within."}
+    ],
+    guideNote:"We'll finish by sending you a personalized one-month skincare routine guide by email.",
+    thanks:"Thank you for entrusting your time to us. 🌿"
+  },
+  ko: {
+    title:"오늘의 세션지",
+    introGreeting:"{name}님, 로렐스튜디오의 모든 케어는 맞춤형으로 진행됩니다. 오늘 체크해 주신 내용을 고려하고, 테라피스트가 피부 상태를 직접 확인하여 안전하고 온순한 케어를 진행합니다. 고객님께 맞는 디바이스·앰플·제품을 사용하며, 피부가 약해진 상태에서는 건강한 관리 위주로, 피부가 건강한 상태에서는 한 단계 더 발전시킬 수 있는 제품으로 진행합니다.",
+    introHydration:"피부는 우리 몸에서 가장 큰 보호 기관이며, 건강한 피부 장벽을 위해서는 지속적인 수분 공급이 필수입니다. 오늘 케어는 피부에 수분을 채우고 유효 성분이 잘 흡수되도록 준비하는 것에서 시작해, 고객님께 맞는 앰플과 세럼으로 이어집니다. 편안히 눈을 감고 피부가 회복되는 이 고요한 시간을 즐겨 주세요.",
+    yourCheck:"고객님이 체크하신 내용",
+    skinType:"피부 타입", concerns:"고민", goals:"원하는 결과", program:"오늘의 프로그램",
+    durationTitle:"오늘의 케어 시간",
+    durPremium:"프리미엄 — 약 60~70분 소요",
+    durSignature:"시그니처 — 약 50~60분 소요",
+    durBody:"바디 — 지금부터 약 90분 이내 소요",
+    stepsTitle:"오늘의 케어 순서",
+    lblProducts:"제품", lblPurpose:"목적",
+    steps:[
+      {title:"Step 1 · 딥 클렌징 & 각질 정리", products:"에스테틱 밀크 클렌저 & PHA", purpose:"노폐물 제거 및 제품 흡수력 향상"},
+      {title:"Step 2 · 딥 수분팩 + LED 광 테라피", products:"고농축 젤리 타입 수분팩 (작은 분자 수분 입자로 흡수력이 높아 일주일치 수분감 제공)", purpose:"집중 수분·진정. LED 마스크 — 피부과에서 흡수력 향상, 정형외과에서 깊은 조직 염증 완화에 사용"},
+      {title:"Step 3 · 맞춤 케어", products:"개인 맞춤 앰플·세럼", purpose:"탄력·집중 수분·영양 공급"},
+      {title:"Step 4 · 마무리 – 시트 마스크", products:"개인 맞춤 에스테틱 시트 마스크", purpose:"피부 보호 및 장벽 강화"},
+      {title:"Step 5 · 마지막 보습", products:"재생 보습 크림 & 선크림", purpose:"수분 잠금 및 피부 보호"}
+    ],
+    tenProducts:"민감성 피부에도 사용 가능한 전문 한국 에스테틱 제품 10종을 사용했습니다.",
+    specialTitle:"스페셜 케어",
+    special:[
+      {name:"소프트 필링 PHA", desc:"민감성 피부에도 사용 가능한 순한 필링으로 각질과 블랙헤드를 제거합니다. 클렌징 직후 화장솜으로 적용하며, 주 1~2회 사용 시 광채와 앰플 흡수력을 높여줍니다."},
+      {name:"LED 광 마스크 테라피", desc:"제품 흡수력을 높이고 피부 염증을 완화합니다. 피부의 자가 재생과 전반적 개선을 돕습니다."},
+      {name:"PDRN", desc:"손상 부위를 선택적으로 타깃하는 DNA 조각으로 항염·세포 증식·조직 재생을 돕습니다. 꾸준히 사용하면 모공 탄력이 개선되고 피부가 속부터 단단해집니다."}
+    ],
+    guideNote:"마무리로, 개인 맞춤 1개월 홈케어 루틴 가이드를 이메일로 보내드립니다.",
+    thanks:"당신의 시간을 저희에게 맡겨주어 감사합니다. 🌿"
+  }
+};
+function sheet(){ return SHEET[selfLang] || SHEET.en; }
+
+function buildSessionSheetHTML(){
+  const s = sheet();
+  const lng = t();
+  const nm = selfData.name || "";
+  const skinType = selfData.skintype!==null ? lng.skintypeOpts[selfData.skintype] : "—";
+  const concerns = selfData.concerns.length ? selfData.concerns.map(i=>lng.concernOpts[i]).join(", ") : "—";
+  const goals = selfData.goals.length ? selfData.goals.map(i=>lng.goalOpts[i]).join(", ") : "—";
+  const prog = selfData.program || "";
+  const progLabel = prog || "—";
+  let durLines;
+  if(prog==="프리미엄") durLines = s.durPremium;
+  else if(prog==="시그니처") durLines = s.durSignature;
+  else if(prog==="바디") durLines = s.durBody;
+  else durLines = [s.durPremium,s.durSignature,s.durBody].join("<br>");
+  const stepsHtml = s.steps.map(st=>`<div style="margin-bottom:14px"><div style="font-weight:600;color:var(--text);font-size:15px">${st.title}</div>${st.products?`<div style="font-size:13px;color:var(--muted);margin-top:3px">${s.lblProducts}: ${st.products}</div>`:""}${st.purpose?`<div style="font-size:13px;color:var(--muted)">${s.lblPurpose}: ${st.purpose}</div>`:""}</div>`).join("");
+  const specialHtml = s.special.map(sp=>`<div style="margin-bottom:10px"><div style="font-weight:600;font-size:14px;color:var(--text)">${sp.name}</div><div style="font-size:13px;color:var(--muted);margin-top:2px">${sp.desc}</div></div>`).join("");
+  const showGuide = (prog==="프리미엄"||prog==="바디");
+  return `
+    <div style="text-align:left">
+      <p style="font-size:14px;line-height:1.7;color:var(--text);margin-bottom:10px">${s.introGreeting.replace("{name}", nm)}</p>
+      <p style="font-size:13px;line-height:1.7;color:var(--muted);margin-bottom:20px">${s.introHydration}</p>
+      <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--section-self);margin-bottom:10px">${s.yourCheck}</div>
+      <div class="result-row"><span class="result-key">${s.skinType}</span><span class="result-val">${skinType}</span></div>
+      <div class="result-row"><span class="result-key">${s.concerns}</span><span class="result-val">${concerns}</span></div>
+      <div class="result-row"><span class="result-key">${s.goals}</span><span class="result-val">${goals}</span></div>
+      <div class="result-row"><span class="result-key">${s.program}</span><span class="result-val">${progLabel}</span></div>
+      <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--section-self);margin:20px 0 8px">${s.durationTitle}</div>
+      <div style="font-size:14px;color:var(--text);line-height:1.7">${durLines}</div>
+      <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--section-self);margin:22px 0 12px">${s.stepsTitle}</div>
+      ${stepsHtml}
+      <div style="font-size:12px;color:var(--muted2);font-style:italic;margin:6px 0 18px">${s.tenProducts}</div>
+      <div style="font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--section-self);margin:10px 0 12px">${s.specialTitle}</div>
+      ${specialHtml}
+      ${showGuide?`<div style="background:var(--section-self-bg);border:1px solid var(--section-self);border-radius:6px;padding:14px 16px;margin-top:18px;font-size:13px;color:var(--text);line-height:1.6">${s.guideNote}</div>`:""}
+      <p style="text-align:center;font-family:'Cormorant Garamond',serif;font-size:18px;color:var(--section-self);margin-top:24px;font-style:italic">${s.thanks}</p>
+    </div>
+  `;
+}
 const WEBHOOK = "https://script.google.com/macros/s/AKfycbxbdtH3LbWfvbRl1dBt3fXejg2F8QGAipewlatItWh3HgSj_MynIWEvVm-tHiTC5jCLXA/exec";
 const THERAPIST_PASSWORD = "laurel2024";
 
 let step = 0;
-let mode = "input"; // "self" / "input" / "search"
+let mode = "input";
 let editMode = false;
 let editRowNumber = null;
 let editCaseId = null;
 let searchType = "email";
-let lastSaveOk = false; // ★ v2.1: 마지막 저장(append/update) 성공 여부
+let lastSaveOk = false;
 
-// 자가체크 상태
 let selfLang = "en";
-let selfStep = 0; // 0:lang, 1:basic, 2:skintype, 3:concerns, 4:goals/memo
+let selfStep = 0;
 let selfData = {
   name:"", email:"", age:"", gender:"", nationality:"", residence:"",
   skintype:null, concerns:[], goals:[], memo:"", program:"", source:""
@@ -583,11 +673,6 @@ const DATA = {
   visualCats: ["수분감","탄력","홍조","트러블","전반적 상태"],
 };
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  9개 언어 시스템 — 고객 자가체크 모드 전용
-//  ※ ageOpts는 모든 언어에서 index 0 = "19세 미만" 으로 정렬되어 있어야
-//    한국어 매핑(t().ageOpts.indexOf → T.ko.ageOpts[idx])이 어긋나지 않음
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const T = {
   ko: {
     title:"잠시 본인의 피부를 알려주세요", subtitle:"약 3-5분 정도 소요됩니다",
@@ -808,18 +893,13 @@ const T = {
 };
 function t(){ return T[selfLang] || T.en; }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  ★ v2.1: 모드 버튼 가드
-//  이전 고객의 editMode/row가 남은 채로 다음 고객을 입력해서
-//  이전 기록을 덮어쓰는 사고를 모드 전환 시점에 차단한다
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 function modeInputClicked(){
   if(mode === "input") return;
   if(editMode && !lastSaveOk){
     if(!confirm("수정/입력 중인 기록이 있습니다.\n중단하고 새 기록을 시작할까요?")) return;
   }
   if(editMode || lastSaveOk){
-    resetAll(); // "새 기록"은 항상 깨끗한 양식 + 빈 edit 상태에서 시작
+    resetAll();
   }
   switchMode("input");
 }
@@ -832,9 +912,6 @@ function modeSelfClicked(){
   switchMode("self");
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  모드 전환
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 function switchMode(newMode) {
   mode = newMode;
   document.getElementById("mode-input").className = "mode-btn" + (mode==="input"?" active":"");
@@ -849,21 +926,16 @@ function switchMode(newMode) {
   }
   if(mode==="search"){
     document.getElementById("search-input").focus();
-    loadTodayList();   // ★ v5.2: 검색모드 진입 시 오늘 목록 자동 표시
+    loadTodayList();
   }
   if(mode==="self"){
-    // 자가체크 시작 (★ v2.1: 내부에서 edit 상태도 함께 초기화됨)
     resetSelfCheck();
   }
   window.scrollTo(0,0);
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  자가체크 — 언어 선택 후 시작
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 function selfStartLang(lang){
   selfLang = lang;
-  // 언어별 body 속성 설정 (폰트/방향)
   document.body.setAttribute('lang', lang);
   if(lang === 'ar' || lang === 'he'){
     document.body.setAttribute('dir', 'rtl');
@@ -877,7 +949,6 @@ function selfStartLang(lang){
 }
 
 function renderSelfStep(){
-  // 진행 표시
   for(let i=1;i<=5;i++){
     const dot = document.getElementById(`sdot-${i}`);
     dot.className = "self-step-dot" + (i<selfStep?" done":(i===selfStep?" active":""));
@@ -887,7 +958,6 @@ function renderSelfStep(){
   let html = "";
 
   if(selfStep === 1){
-    // 기본 정보
     html = `
       <div class="self-card">
         <div class="self-q-title">${lng.s1_title}</div>
@@ -926,7 +996,6 @@ function renderSelfStep(){
       </div>
     `;
   } else if(selfStep === 2){
-    // 피부 타입
     html = `
       <div class="self-card">
         <div class="self-q-title">${lng.s2_title}</div>
@@ -937,7 +1006,6 @@ function renderSelfStep(){
       </div>
     `;
   } else if(selfStep === 3){
-    // 고민 (복수)
     html = `
       <div class="self-card">
         <div class="self-q-title">${lng.s3_title}</div>
@@ -948,7 +1016,6 @@ function renderSelfStep(){
       </div>
     `;
   } else if(selfStep === 4){
-    // 목표 + 메모
     html = `
       <div class="self-card">
         <div class="self-q-title">${lng.s4_title}</div>
@@ -978,7 +1045,6 @@ function renderSelfStep(){
 
   content.innerHTML = html;
 
-  // 버튼 라벨 다국어
   document.getElementById("self-back-btn").textContent = lng.back;
   const nextBtn = document.getElementById("self-next-btn");
   if(selfStep === 4){
@@ -988,7 +1054,6 @@ function renderSelfStep(){
   }
   document.getElementById("self-back-btn").style.visibility = selfStep === 1 ? "hidden" : "visible";
 
-  // 입력 이벤트 — 실시간 selfData 업데이트
   if(selfStep === 1){
     document.getElementById("self-name").addEventListener("input", e => selfData.name = e.target.value);
     document.getElementById("self-email").addEventListener("input", e => selfData.email = e.target.value);
@@ -1028,7 +1093,6 @@ function selfBack(){
 
 function selfNext(){
   const lng = t();
-  // 검증
   if(selfStep === 1){
     let ok = true;
     if(!selfData.name.trim()){
@@ -1051,7 +1115,6 @@ function selfNext(){
     selfStep++;
     renderSelfStep();
   } else {
-    // 마지막 단계 → 완료 화면 + 저장
     showSelfComplete();
   }
 }
@@ -1059,25 +1122,10 @@ function selfNext(){
 function showSelfComplete(){
   document.getElementById("self-step-form").classList.add("hidden");
   document.getElementById("self-step-complete").classList.remove("hidden");
-  const lng = t();
-  document.getElementById("self-complete-title").textContent = lng.completeTitle;
-  document.getElementById("self-complete-msg").innerHTML = lng.completeMsg;
-
-  // 요약 표시
-  const skintypeText = selfData.skintype !== null ? lng.skintypeOpts[selfData.skintype] : "—";
-  const concernsText = selfData.concerns.length > 0 ? selfData.concerns.map(i=>lng.concernOpts[i]).join(", ") : "—";
-  const goalsText = selfData.goals.length > 0 ? selfData.goals.map(i=>lng.goalOpts[i]).join(", ") : "—";
-
-  document.getElementById("self-summary-box").innerHTML = `
-    <div style="font-size:13px;color:var(--muted);margin-bottom:4px">${lng.summarySkin}</div>
-    <div style="font-size:15px;color:var(--text);margin-bottom:14px">${skintypeText}</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:4px">${lng.summaryConcerns}</div>
-    <div style="font-size:15px;color:var(--text);margin-bottom:14px">${concernsText}</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:4px">${lng.summaryGoals}</div>
-    <div style="font-size:15px;color:var(--text)">${goalsText}</div>
-  `;
-
-  // 자동 저장 시작
+  const s = sheet();
+  document.getElementById("self-complete-title").textContent = s.title;
+  document.getElementById("self-complete-msg").innerHTML = "";
+  document.getElementById("self-summary-box").innerHTML = buildSessionSheetHTML();
   saveSelfCheck();
 }
 
@@ -1087,20 +1135,16 @@ async function saveSelfCheck(){
   statusEl.textContent = lng.saving;
   statusEl.style.color = "var(--muted)";
 
-  // case_id 생성 (CR-YYYYMMDD-XXXX)
   const now = new Date();
   const dateStr = now.getFullYear() + String(now.getMonth()+1).padStart(2,"0") + String(now.getDate()).padStart(2,"0");
   selfSavedCaseId = "CR-" + dateStr + "-" + String(Date.now()).slice(-4);
 
-  // ★ Case ID를 완료 화면에 크게 표시
   document.getElementById("self-case-id-display").textContent = selfSavedCaseId;
   document.getElementById("self-case-id-name").textContent = (selfData.name || "") + (selfData.email ? " · " + selfData.email : "");
 
-  // 한국어 매핑 (CARE_Data 스키마 호환)
   const skintypeMap = selfData.skintype !== null ? T.ko.skintypeOpts[selfData.skintype] : "";
   const concernsMap = selfData.concerns.map(i => T.ko.concernOpts[i]).join("|");
   const goalsMap = selfData.goals.map(i => T.ko.goalOpts[i]).join("|");
-  // 나이/성별도 한국어로 매핑
   let ageMap = "";
   if(selfData.age){
     const idx = t().ageOpts.indexOf(selfData.age);
@@ -1146,7 +1190,6 @@ async function saveSelfCheck(){
     care_next: "",
     care_summary: ""
   };
-  // visual scores 빈값 채우기
   DATA.visualCats.forEach(cat => {
     payload[`visual_${cat}_before`] = "";
     payload[`visual_${cat}_after`] = "";
@@ -1175,7 +1218,6 @@ function selfHandToTherapist(){
     alert("저장이 완료되지 않았습니다. 잠시 후 다시 시도해 주세요.");
     return;
   }
-  // 비번 모달 열기
   document.getElementById("pwd-modal").classList.add("show");
   document.getElementById("pwd-input").value = "";
   document.getElementById("pwd-err").textContent = "";
@@ -1198,24 +1240,19 @@ function cancelPwd(){
 }
 
 function transitionToTherapistMode(){
-  // ★★★ v2.1 FIX 1: 이전 고객의 테라피스트 평가/케어 기록이 폼에 남아
-  //     다음 고객 기록에 섞여 저장되던 문제 — 폼 전체를 먼저 완전히 비운다
   clearFormState();
 
-  // 입력 모드로 전환 + 자가체크 데이터 자동 채움 + editMode 활성화
   editMode = true;
   editRowNumber = selfSavedRowNumber;
   editCaseId = selfSavedCaseId;
   lastSaveOk = false;
 
-  // 기본 정보 채움
   document.getElementById("client-name").value = selfData.name;
   document.getElementById("client-email").value = selfData.email;
   document.getElementById("visit-date").value = new Date().toISOString().split("T")[0];
   document.getElementById("nationality").value = selfData.nationality;
   document.getElementById("visit-count").value = "1회차 (신규)";
 
-  // gender / age 한국어 매핑
   if(selfData.gender){
     const idx = t().genderOpts.indexOf(selfData.gender);
     if(idx >= 0) multi.gender = T.ko.genderOpts[idx];
@@ -1225,7 +1262,6 @@ function transitionToTherapistMode(){
     if(idx >= 0) multi.age = T.ko.ageOpts[idx];
   }
 
-  // 피부타입/고민/목표 한국어 매핑
   if(selfData.skintype !== null){
     multi.clientSkintype = T.ko.skintypeOpts[selfData.skintype];
   }
@@ -1233,27 +1269,21 @@ function transitionToTherapistMode(){
   multi.clientGoals = selfData.goals.map(i => T.ko.goalOpts[i]);
   document.getElementById("client-memo").value = selfData.memo + (selfData.residence ? "\n[거주지: " + selfData.residence + "]" : "") + "\n[자가체크 언어: " + selfLang + "]";
 
-  // 영어/외국어 라벨로 body 속성 되돌리기 (테라피스트는 한국어)
   document.body.setAttribute('lang', 'ko');
   document.body.removeAttribute('dir');
 
-  // 모드 전환
   switchModeToInputInternal();
   step = 0;
   initAll();
   updateUI();
 
-  // 자가체크 완료 배너 표시
   document.getElementById("self-banner-0").classList.add("show");
   document.getElementById("self-badge").classList.add("show");
   document.getElementById("edit-mode-badge").classList.remove("show");
 
-  // ★★★ v2.1 FIX 3: 서버가 돌려준 row 번호를 그대로 믿지 않고
-  //     방금 저장된 case_id로 실제 row 번호를 재확인한다
   verifyRowNumberByCaseId();
 }
 
-// 내부 전용: self 모드의 resetSelfCheck를 타지 않고 입력 모드로 전환
 function switchModeToInputInternal(){
   mode = "input";
   document.getElementById("mode-input").className = "mode-btn active";
@@ -1269,7 +1299,6 @@ function switchModeToInputInternal(){
   window.scrollTo(0,0);
 }
 
-// ★ v2.1: case_id로 시트의 실제 row 번호를 재확인 (잘못된 row 업데이트 방지)
 async function verifyRowNumberByCaseId(){
   if(!editCaseId || !selfData.email) return;
   try{
@@ -1280,13 +1309,13 @@ async function verifyRowNumberByCaseId(){
       const hit = data.results.find(r => r.case_id === editCaseId);
       if(hit && hit._row_number){
         if(hit._row_number !== editRowNumber){
-          console.warn("⚠ row 번호 불일치 — 저장 응답:", editRowNumber, "→ 실제 시트:", hit._row_number, "(실제 값으로 교정)");
+          console.warn("⚠ row 번호 불일치", editRowNumber, "→", hit._row_number);
         }
         editRowNumber = hit._row_number;
       }
     }
   }catch(e){
-    console.warn("row 재확인 생략 (네트워크):", e);
+    console.warn("row 재확인 생략:", e);
   }
 }
 
@@ -1295,7 +1324,6 @@ function resetSelfCheck(){
   selfData = {name:"",email:"",age:"",gender:"",nationality:"",residence:"",skintype:null,concerns:[],goals:[],memo:"",program:"",source:""};
   selfSavedCaseId = null;
   selfSavedRowNumber = null;
-  // ★ v2.1 FIX 2: 이전 고객의 수정 상태가 새 자가체크로 새어 들어가지 않도록 완전 초기화
   editMode = false;
   editRowNumber = null;
   editCaseId = null;
@@ -1311,9 +1339,6 @@ function resetSelfCheck(){
   document.body.removeAttribute('dir');
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  검색 모드
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 function setSearchType(type) {
   searchType = type;
   ["email","name","date"].forEach(t=>{
@@ -1396,7 +1421,6 @@ function displaySearchResults(data, isToday) {
   window._searchResults = data.results;
 }
 
-// ★ v5.2: 오늘 방문 고객 목록 (action:"today") — 이메일 검색 없이 이름 탭으로 바로 열기
 async function loadTodayList() {
   const resultsDiv = document.getElementById("search-results");
   resultsDiv.innerHTML = '<div class="search-loading">📋 오늘 목록 불러오는 중...</div>';
@@ -1420,7 +1444,6 @@ function loadRecord(idx) {
   const r = window._searchResults[idx];
   if(!r) return;
 
-  // ★ v2.1: 이전 폼 잔여물 제거 후 기록 로드 (tp-goal-custom 등 누락 필드 오염 방지)
   clearFormState();
 
   editMode = true;
@@ -1480,9 +1503,6 @@ function loadRecord(idx) {
   alert("✎ 수정 모드 진입\n\n" + (r.client_name||"고객") + " · " + (r.visit_date||"") + "\n\n잘못된 부분을 수정한 후 마지막 화면에서 다시 저장해 주세요.");
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  입력 모드
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 function buildRadio(cid, stateKey, options, colorClass){
   const el=document.getElementById(cid); if(!el)return;
   el.innerHTML="";
@@ -1678,7 +1698,6 @@ async function finalSave(){
   const btn=document.getElementById("final-save-btn");
   const status=document.getElementById("final-save-status");
 
-  // ★ v2.1: 수정 모드인데 row 번호가 없으면 절대 update로 보내지 않음
   if(editMode && !editRowNumber){
     status.innerHTML='<span style="color:var(--danger)">⚠ 수정 대상 row를 확인할 수 없습니다. 검색에서 기록을 다시 불러와 주세요.</span>';
     return;
@@ -1744,7 +1763,7 @@ async function finalSave(){
     const result = await response.json();
 
     if(result.status === "ok"){
-      lastSaveOk = true; // ★ v2.1
+      lastSaveOk = true;
       btn.textContent = editMode ? "✓ 수정 완료" : "✓ 저장 완료";
       btn.style.background="var(--success)";
       btn.style.borderColor="var(--success)";
@@ -1763,7 +1782,6 @@ async function finalSave(){
   }
 }
 
-// ★ v2.1: 폼·선택 상태 초기화 (edit 상태는 건드리지 않음 — 전환/리셋 양쪽에서 재사용)
 function clearFormState(){
   d={};
   multi={gender:null,age:null,clientSkintype:null,clientConcerns:[],clientGoals:[],

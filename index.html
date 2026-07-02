@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Laurel Studio — Care Record v2.3 (Session Sheet)</title>
+<title>Laurel Studio — Care Record v2.4 (Session Sheet · 9 languages)</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&family=Noto+Sans+KR:wght@300;400;500&family=Noto+Sans+Arabic:wght@400;500&family=Noto+Sans+Hebrew:wght@400;500&family=Noto+Sans+JP:wght@400;500&family=Noto+Sans+SC:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -587,6 +587,212 @@ const SHEET = {
     thanks:"당신의 시간을 저희에게 맡겨주어 감사합니다. 🌿"
   }
 };
+const SHEET_EXTRA = {
+  ja: {
+    title:"本日のセッションシート",
+    introGreeting:"{name}様、ロレルスタジオではすべてのケアがオーダーメイドです。チェックいただいた内容を考慮し、テラピストがお肌の状態を直接確認して、最も安全で穏やかなケアを行います。お客様に合ったデバイス・アンプル・製品を使用し、お肌が弱っている時は健やかに整えるケアを、お肌が健康な時はさらに一歩進んだ製品を用います。",
+    introHydration:"肌は体で最も大きな保護器官であり、健やかな肌バリアには継続的な水分補給が欠かせません。本日のケアは、肌に水分を与え有効成分が浸透しやすいよう整えることから始まり、お客様に合わせたアンプルとセラムへと続きます。どうぞ楽にして目を閉じ、肌が癒やされるこの静かな時間をお楽しみください。",
+    yourCheck:"チェックいただいた内容",
+    skinType:"肌タイプ", concerns:"お悩み", goals:"望む結果", program:"本日のプログラム",
+    durationTitle:"本日のケア時間",
+    durPremium:"プレミアム — 約60〜70分",
+    durSignature:"シグネチャー — 約50〜60分",
+    durBody:"ボディ — 今から約90分以内",
+    stepsTitle:"本日のケアステップ",
+    lblProducts:"製品", lblPurpose:"目的",
+    steps:[
+      {title:"Step 1 · ディープクレンジング & 角質ケア", products:"エステティック ミルククレンザー & PHA", purpose:"汚れを取り除き、製品の浸透を高める"},
+      {title:"Step 2 · ディープ水分パック + LED光ケア", products:"高濃度ジェリータイプ水分パック(小さな水分子で浸透力が高く、一週間分の水分感)", purpose:"集中保湿と鎮静。LEDマスク — 皮膚科では浸透促進、整形外科では深部組織の炎症軽減に使用"},
+      {title:"Step 3 · カスタムケア", products:"個人に合わせたアンプル・セラム", purpose:"ハリ・集中保湿・栄養補給"},
+      {title:"Step 4 · 仕上げ – シートマスク", products:"個人に合わせたエステティックシートマスク", purpose:"肌の保護とバリア強化"},
+      {title:"Step 5 · 最後の保湿", products:"再生保湿クリーム & 日焼け止め", purpose:"水分を閉じ込め、肌を保護"}
+    ],
+    tenProducts:"敏感肌にも使える韓国の専門エステティック製品を10種類使用しました。",
+    specialTitle:"スペシャルケア",
+    special:[
+      {name:"ソフトピーリング PHA", desc:"敏感肌にも使えるやさしいピーリングで、角質と黒ずみを取り除きます。クレンジング直後にコットンで塗布し、週1〜2回の使用でツヤとアンプルの浸透を高めます。"},
+      {name:"LED光マスクケア", desc:"製品の浸透を高め、肌の炎症を和らげます。肌の自己再生と全体的な改善をサポートします。"},
+      {name:"PDRN", desc:"損傷部位を選択的にターゲットするDNA断片で、抗炎症・細胞増殖・組織再生を促します。継続使用で毛穴の弾力が改善し、肌が内側から丈夫になります。"}
+    ],
+    guideNote:"最後に、お客様専用の1か月ホームケアルーティンガイドをメールでお送りします。",
+    thanks:"大切なお時間を私たちに預けてくださり、ありがとうございます。🌿"
+  },
+  zh: {
+    title:"今日护理单",
+    introGreeting:"{name}，在罗蕾尔工作室，每一项护理都是量身定制的。我们会参考您勾选的内容，并由护理师亲自确认您的肌肤状态，以最安全、最温和的方式进行护理。我们会使用最适合您的仪器、安瓶与产品；当肌肤较为脆弱时以健康养护为主，肌肤健康时则使用能更进一步提升的产品。",
+    introHydration:"皮肤是人体最大的保护器官，健康的肌肤屏障离不开持续的补水。今日护理将从为肌肤补水、帮助有效成分吸收开始，随后使用适合您的安瓶与精华。请放松，闭上眼睛，享受这段修护肌肤的宁静时光。",
+    yourCheck:"您勾选的内容",
+    skinType:"肤质", concerns:"肌肤困扰", goals:"期望效果", program:"今日项目",
+    durationTitle:"今日护理时间",
+    durPremium:"高级护理 — 约60〜70分钟",
+    durSignature:"招牌护理 — 约50〜60分钟",
+    durBody:"身体护理 — 从现在起约90分钟内",
+    stepsTitle:"今日护理步骤",
+    lblProducts:"产品", lblPurpose:"目的",
+    steps:[
+      {title:"Step 1 · 深层清洁 & 去角质", products:"美容牛奶洁面 & PHA", purpose:"清除杂质，提升产品吸收"},
+      {title:"Step 2 · 深层补水膜 + LED光疗", products:"高浓度啫喱型补水膜(小分子水粒吸收力强，提供一周的水润感)", purpose:"集中补水与舒缓。LED面膜 — 皮肤科用于提升吸收，骨科用于减轻深层组织炎症"},
+      {title:"Step 3 · 定制护理", products:"个人定制安瓶与精华", purpose:"紧致、深层补水与滋养"},
+      {title:"Step 4 · 收尾 – 面膜", products:"个人定制美容面膜", purpose:"保护肌肤并强化屏障"},
+      {title:"Step 5 · 最后保湿", products:"修护保湿霜 & 防晒霜", purpose:"锁住水分，保护肌肤"}
+    ],
+    tenProducts:"我们使用了10种适合敏感肌的韩国专业美容产品。",
+    specialTitle:"特别护理",
+    special:[
+      {name:"柔和焕肤 PHA", desc:"适合敏感肌的温和焕肤，去除角质与黑头。洁面后立即用化妆棉涂抹，每周使用1〜2次可提升光泽与安瓶吸收。"},
+      {name:"LED光面膜疗程", desc:"提升外用产品的吸收，减轻肌肤炎症，支持肌肤自我修复与整体改善。"},
+      {name:"PDRN", desc:"能选择性作用于受损部位的DNA片段，促进抗炎、细胞增殖与组织再生。持续使用可改善毛孔弹性，由内强健肌肤。"}
+    ],
+    guideNote:"最后，我们会通过邮件为您发送专属的一个月居家护理指南。",
+    thanks:"感谢您将宝贵的时间托付给我们。🌿"
+  },
+  fr: {
+    title:"Fiche de soin du jour",
+    introGreeting:"{name}, chez Laurel Studio, chaque soin est personnalisé. Nous tenons compte des points que vous avez cochés, et votre thérapeute évalue votre peau en personne pour offrir le soin le plus sûr et le plus doux — avec les appareils, ampoules et produits les mieux adaptés à vous. Lorsque la peau est fragilisée, nous privilégions un soin doux et réparateur ; lorsqu'elle est saine, nous utilisons des produits qui la font progresser davantage.",
+    introHydration:"La peau est le plus grand organe protecteur du corps, et une hydratation continue est essentielle à une barrière saine. Le soin d'aujourd'hui commence par réhydrater et préparer votre peau à absorber les actifs, suivi d'ampoules et de sérums personnalisés. Détendez-vous, fermez les yeux et profitez de ce moment calme et réparateur.",
+    yourCheck:"Ce que vous nous avez indiqué",
+    skinType:"Type de peau", concerns:"Préoccupations", goals:"Objectifs", program:"Programme du jour",
+    durationTitle:"Durée du soin",
+    durPremium:"Premium — environ 60–70 minutes",
+    durSignature:"Signature — environ 50–60 minutes",
+    durBody:"Corps — sous environ 90 minutes à partir de maintenant",
+    stepsTitle:"Étapes du soin d'aujourd'hui",
+    lblProducts:"Produits", lblPurpose:"Objectif",
+    steps:[
+      {title:"Étape 1 · Nettoyage profond & Exfoliation", products:"Lait nettoyant esthétique & PHA", purpose:"Éliminer les impuretés et améliorer l'absorption"},
+      {title:"Étape 2 · Masque hydratant intense + LED", products:"Masque hydratant gelée haute concentration (particules d'eau fines très absorbantes, une semaine d'hydratation)", purpose:"Hydratation intense et apaisement. Masque LED — utilisé en dermatologie pour l'absorption et en orthopédie pour réduire l'inflammation profonde"},
+      {title:"Étape 3 · Soin sur mesure", products:"Ampoules et sérums personnalisés", purpose:"Fermeté, hydratation profonde et nutrition"},
+      {title:"Étape 4 · Finition – Masque tissu", products:"Masque tissu esthétique personnalisé", purpose:"Protection de la peau et renforcement de la barrière"},
+      {title:"Étape 5 · Hydratation finale", products:"Crème hydratante régénérante & écran solaire", purpose:"Sceller l'hydratation et protéger la peau"}
+    ],
+    tenProducts:"Nous avons utilisé 10 produits esthétiques coréens professionnels, adaptés même aux peaux sensibles.",
+    specialTitle:"Soins spéciaux",
+    special:[
+      {name:"Peeling doux PHA", desc:"Un peeling doux adapté aux peaux sensibles qui élimine cellules mortes et points noirs. Appliqué au coton juste après le nettoyage. À utiliser 1 à 2 fois par semaine pour l'éclat et l'absorption des ampoules."},
+      {name:"Thérapie masque LED", desc:"Améliore l'absorption des produits et réduit l'inflammation cutanée. Soutient l'autorégénération et l'amélioration globale de la peau."},
+      {name:"PDRN", desc:"Fragments d'ADN ciblant sélectivement les zones abîmées, favorisant anti-inflammation, prolifération cellulaire et régénération tissulaire. Un usage régulier améliore l'élasticité des pores et renforce la peau de l'intérieur."}
+    ],
+    guideNote:"Nous terminerons en vous envoyant par e-mail un guide de routine personnalisé d'un mois.",
+    thanks:"Merci de nous confier votre temps. 🌿"
+  },
+  de: {
+    title:"Heutiges Behandlungsblatt",
+    introGreeting:"{name}, im Laurel Studio ist jede Behandlung individuell. Wir berücksichtigen Ihre angekreuzten Angaben, und Ihre Therapeutin beurteilt Ihre Haut persönlich, um die sicherste und sanfteste Pflege zu bieten — mit den für Sie am besten geeigneten Geräten, Ampullen und Produkten. Bei geschwächter Haut steht sanfte, aufbauende Pflege im Vordergrund; bei gesunder Haut verwenden wir Produkte, die sie einen Schritt weiterbringen.",
+    introHydration:"Die Haut ist das größte Schutzorgan des Körpers, und kontinuierliche Feuchtigkeit ist für eine gesunde Barriere unerlässlich. Die heutige Behandlung beginnt damit, Ihre Haut mit Feuchtigkeit zu versorgen und auf die Aufnahme der Wirkstoffe vorzubereiten, gefolgt von individuellen Ampullen und Seren. Entspannen Sie sich, schließen Sie die Augen und genießen Sie diese ruhige, hautpflegende Zeit.",
+    yourCheck:"Ihre Angaben",
+    skinType:"Hauttyp", concerns:"Anliegen", goals:"Ziele", program:"Heutiges Programm",
+    durationTitle:"Behandlungsdauer",
+    durPremium:"Premium — ca. 60–70 Minuten",
+    durSignature:"Signature — ca. 50–60 Minuten",
+    durBody:"Körper — innerhalb von ca. 90 Minuten ab jetzt",
+    stepsTitle:"Heutige Behandlungsschritte",
+    lblProducts:"Produkte", lblPurpose:"Zweck",
+    steps:[
+      {title:"Schritt 1 · Tiefenreinigung & Peeling", products:"Ästhetische Milchreinigung & PHA", purpose:"Unreinheiten entfernen und Aufnahme verbessern"},
+      {title:"Schritt 2 · Intensive Feuchtigkeitsmaske + LED", products:"Hochkonzentrierte Gel-Feuchtigkeitsmaske (kleine Wassermoleküle mit hoher Aufnahme, eine Woche Feuchtigkeit)", purpose:"Intensive Feuchtigkeit und Beruhigung. LED-Maske — in der Dermatologie zur Aufnahme, in der Orthopädie zur Reduktion tiefer Entzündungen"},
+      {title:"Schritt 3 · Individuelle Behandlung", products:"Personalisierte Ampullen und Seren", purpose:"Festigung, tiefe Feuchtigkeit und Nährstoffe"},
+      {title:"Schritt 4 · Abschluss – Tuchmaske", products:"Personalisierte ästhetische Tuchmaske", purpose:"Hautschutz und Barrierestärkung"},
+      {title:"Schritt 5 · Abschließende Pflege", products:"Regenerierende Feuchtigkeitscreme & Sonnenschutz", purpose:"Feuchtigkeit einschließen und Haut schützen"}
+    ],
+    tenProducts:"Wir haben 10 professionelle koreanische ästhetische Produkte verwendet, auch für empfindliche Haut geeignet.",
+    specialTitle:"Spezialpflege",
+    special:[
+      {name:"Sanftes Peeling PHA", desc:"Ein sanftes Peeling für empfindliche Haut, das abgestorbene Zellen und Mitesser entfernt. Direkt nach der Reinigung mit Wattepads aufgetragen. 1–2x pro Woche für Glanz und bessere Ampullenaufnahme."},
+      {name:"LED-Maskentherapie", desc:"Verbessert die Aufnahme von Produkten und reduziert Hautentzündungen. Unterstützt die Selbstregeneration und die allgemeine Verbesserung der Haut."},
+      {name:"PDRN", desc:"DNA-Fragmente, die gezielt geschädigte Bereiche ansprechen und Entzündungshemmung, Zellvermehrung und Geweberegeneration fördern. Regelmäßige Anwendung verbessert die Porenelastizität und stärkt die Haut von innen."}
+    ],
+    guideNote:"Zum Abschluss senden wir Ihnen per E-Mail einen persönlichen Pflege-Leitfaden für einen Monat.",
+    thanks:"Danke, dass Sie uns Ihre Zeit anvertrauen. 🌿"
+  },
+  es: {
+    title:"Ficha de sesión de hoy",
+    introGreeting:"{name}, en Laurel Studio cada tratamiento es personalizado. Tenemos en cuenta lo que ha marcado, y su terapeuta evalúa su piel en persona para ofrecer el cuidado más seguro y suave, usando los dispositivos, ampollas y productos más adecuados para usted. Cuando la piel está debilitada, priorizamos un cuidado suave y reparador; cuando está sana, usamos productos que la llevan un paso más allá.",
+    introHydration:"La piel es el órgano protector más grande del cuerpo, y la hidratación continua es esencial para una barrera sana. El cuidado de hoy comienza por hidratar y preparar su piel para absorber los activos, seguido de ampollas y sérums personalizados. Relájese, cierre los ojos y disfrute de este momento tranquilo y reparador.",
+    yourCheck:"Lo que nos indicó",
+    skinType:"Tipo de piel", concerns:"Preocupaciones", goals:"Objetivos", program:"Programa de hoy",
+    durationTitle:"Duración del cuidado",
+    durPremium:"Premium — aprox. 60–70 minutos",
+    durSignature:"Signature — aprox. 50–60 minutos",
+    durBody:"Corporal — dentro de aprox. 90 minutos desde ahora",
+    stepsTitle:"Pasos del cuidado de hoy",
+    lblProducts:"Productos", lblPurpose:"Propósito",
+    steps:[
+      {title:"Paso 1 · Limpieza profunda & Exfoliación", products:"Leche limpiadora estética & PHA", purpose:"Eliminar impurezas y mejorar la absorción"},
+      {title:"Paso 2 · Mascarilla hidratante intensa + LED", products:"Mascarilla hidratante en gel de alta concentración (partículas de agua pequeñas de gran absorción, una semana de hidratación)", purpose:"Hidratación intensa y calma. Mascarilla LED — usada en dermatología para la absorción y en ortopedia para reducir la inflamación profunda"},
+      {title:"Paso 3 · Tratamiento personalizado", products:"Ampollas y sérums personalizados", purpose:"Firmeza, hidratación profunda y nutrición"},
+      {title:"Paso 4 · Acabado – Mascarilla", products:"Mascarilla estética personalizada", purpose:"Protección de la piel y refuerzo de la barrera"},
+      {title:"Paso 5 · Hidratación final", products:"Crema hidratante regeneradora & protector solar", purpose:"Sellar la hidratación y proteger la piel"}
+    ],
+    tenProducts:"Usamos 10 productos estéticos coreanos profesionales, aptos incluso para piel sensible.",
+    specialTitle:"Cuidados especiales",
+    special:[
+      {name:"Peeling suave PHA", desc:"Un peeling suave apto para piel sensible que elimina células muertas y puntos negros. Se aplica con algodón justo tras la limpieza. Úselo 1–2 veces por semana para dar luminosidad y mejorar la absorción de las ampollas."},
+      {name:"Terapia de mascarilla LED", desc:"Mejora la absorción de los productos y reduce la inflamación de la piel. Apoya la autorregeneración y la mejora general de la piel."},
+      {name:"PDRN", desc:"Fragmentos de ADN que actúan selectivamente sobre las zonas dañadas, favoreciendo la antiinflamación, la proliferación celular y la regeneración de tejidos. El uso constante mejora la elasticidad de los poros y fortalece la piel desde dentro."}
+    ],
+    guideNote:"Terminaremos enviándole por correo una guía personalizada de rutina de un mes.",
+    thanks:"Gracias por confiarnos su tiempo. 🌿"
+  },
+  ar: {
+    title:"بطاقة جلسة اليوم",
+    introGreeting:"{name}، في لوريل ستوديو كل عناية مصممة خصيصاً لك. نأخذ في الاعتبار ما اخترته، وتقوم المختصة بفحص بشرتك مباشرةً لتقديم أكثر عناية أماناً ولطفاً — باستخدام الأجهزة والأمبولات والمنتجات الأنسب لك. عندما تكون البشرة ضعيفة نركّز على عناية صحية لطيفة، وعندما تكون صحية نستخدم منتجات ترتقي بها خطوة أبعد.",
+    introHydration:"البشرة هي أكبر عضو واقٍ في الجسم، والترطيب المستمر ضروري لحاجز صحي. تبدأ عناية اليوم بترطيب بشرتك وتهيئتها لامتصاص المكوّنات الفعّالة، تليها أمبولات وسيرومات مخصصة لك. استرخي، أغمضي عينيك، واستمتعي بهذا الوقت الهادئ الذي يعيد للبشرة عافيتها.",
+    yourCheck:"ما أخبرتنا به",
+    skinType:"نوع البشرة", concerns:"المخاوف", goals:"الأهداف", program:"برنامج اليوم",
+    durationTitle:"مدة العناية",
+    durPremium:"بريميوم — حوالي 60–70 دقيقة",
+    durSignature:"سيغنتشر — حوالي 50–60 دقيقة",
+    durBody:"عناية الجسم — خلال حوالي 90 دقيقة من الآن",
+    stepsTitle:"خطوات عناية اليوم",
+    lblProducts:"المنتجات", lblPurpose:"الغرض",
+    steps:[
+      {title:"الخطوة 1 · تنظيف عميق وتقشير", products:"حليب منظّف تجميلي و PHA", purpose:"إزالة الشوائب وتعزيز امتصاص المنتجات"},
+      {title:"الخطوة 2 · قناع ترطيب مكثّف + علاج ضوئي LED", products:"قناع ترطيب جيلي عالي التركيز (جزيئات ماء دقيقة عالية الامتصاص، ترطيب يدوم أسبوعاً)", purpose:"ترطيب مكثّف وتهدئة. قناع LED — يُستخدم في الجلدية لتعزيز الامتصاص وفي العظام لتقليل الالتهاب العميق"},
+      {title:"الخطوة 3 · عناية مخصّصة", products:"أمبولات وسيرومات مخصّصة", purpose:"شدّ وترطيب عميق وتغذية"},
+      {title:"الخطوة 4 · اللمسة الأخيرة – قناع ورقي", products:"قناع ورقي تجميلي مخصّص", purpose:"حماية البشرة وتقوية الحاجز"},
+      {title:"الخطوة 5 · الترطيب النهائي", products:"كريم ترطيب مجدّد وواقٍ من الشمس", purpose:"حبس الترطيب وحماية البشرة"}
+    ],
+    tenProducts:"استخدمنا 10 منتجات تجميلية كورية احترافية مناسبة حتى للبشرة الحساسة.",
+    specialTitle:"عناية خاصة",
+    special:[
+      {name:"تقشير لطيف PHA", desc:"تقشير لطيف مناسب للبشرة الحساسة يزيل خلايا الجلد الميتة والرؤوس السوداء. يُطبّق بقطنة مباشرة بعد التنظيف. استخدميه مرة أو مرتين أسبوعياً لتعزيز الإشراق وامتصاص الأمبولات."},
+      {name:"علاج قناع LED", desc:"يحسّن امتصاص المنتجات الموضعية ويقلّل التهاب البشرة، ويدعم التجدّد الذاتي والتحسّن العام للبشرة."},
+      {name:"PDRN", desc:"شظايا DNA تستهدف المناطق المتضررة بشكل انتقائي، وتعزّز مقاومة الالتهاب وتكاثر الخلايا وتجدّد الأنسجة. الاستخدام المنتظم يحسّن مرونة المسام ويقوّي البشرة من الداخل."}
+    ],
+    guideNote:"سنختم بإرسال دليل روتين عناية شخصي لمدة شهر عبر البريد الإلكتروني.",
+    thanks:"شكراً لأنك منحتِنا وقتك. 🌿"
+  },
+  he: {
+    title:"דף הטיפול של היום",
+    introGreeting:"{name}, בלורל סטודיו כל טיפול הוא אישי. אנו מתחשבים במה שסימנת, והמטפלת בוחנת את עורך באופן אישי כדי להעניק את הטיפול הבטוח והעדין ביותר — עם המכשירים, האמפולות והמוצרים המתאימים לך ביותר. כאשר העור מוחלש אנו מתמקדים בטיפול בריא ועדין; כשהעור בריא אנו משתמשים במוצרים שמקדמים אותו צעד נוסף.",
+    introHydration:"העור הוא האיבר המגן הגדול ביותר בגוף, ולחות מתמשכת חיונית למחסום בריא. הטיפול היום מתחיל בהחזרת לחות והכנת העור לספיגת החומרים הפעילים, ולאחר מכן אמפולות וסרומים מותאמים אישית. הירגעי, עצמי עיניים ותיהני מזמן שקט ומרפא זה.",
+    yourCheck:"מה שסיפרת לנו",
+    skinType:"סוג עור", concerns:"חששות", goals:"מטרות", program:"התוכנית של היום",
+    durationTitle:"משך הטיפול",
+    durPremium:"פרימיום — כ-60–70 דקות",
+    durSignature:"סיגנצ'ר — כ-50–60 דקות",
+    durBody:"גוף — בתוך כ-90 דקות מעכשיו",
+    stepsTitle:"שלבי הטיפול של היום",
+    lblProducts:"מוצרים", lblPurpose:"מטרה",
+    steps:[
+      {title:"שלב 1 · ניקוי עמוק & פילינג", products:"חלב ניקוי אסתטי & PHA", purpose:"הסרת לכלוך ושיפור ספיגת המוצרים"},
+      {title:"שלב 2 · מסכת לחות עמוקה + טיפול LED", products:"מסכת לחות ג'ל בריכוז גבוה (מולקולות מים קטנות בעלות ספיגה גבוהה, לחות לשבוע)", purpose:"לחות עמוקה והרגעה. מסכת LED — בשימוש בדרמטולוגיה לשיפור ספיגה ובאורתופדיה להפחתת דלקת עמוקה"},
+      {title:"שלב 3 · טיפול מותאם אישית", products:"אמפולות וסרומים מותאמים אישית", purpose:"מיצוק, לחות עמוקה והזנה"},
+      {title:"שלב 4 · סיום – מסכת בד", products:"מסכת בד אסתטית מותאמת אישית", purpose:"הגנה על העור וחיזוק המחסום"},
+      {title:"שלב 5 · לחות מסכמת", products:"קרם לחות מתחדש & קרם הגנה", purpose:"נעילת הלחות והגנה על העור"}
+    ],
+    tenProducts:"השתמשנו ב-10 מוצרים אסתטיים קוריאניים מקצועיים, מתאימים אף לעור רגיש.",
+    specialTitle:"טיפולים מיוחדים",
+    special:[
+      {name:"פילינג עדין PHA", desc:"פילינג עדין המתאים לעור רגיש שמסיר תאי עור מתים ונקודות שחורות. מיושם בפדי כותנה מיד לאחר הניקוי. השתמשי פעם-פעמיים בשבוע לזוהר ולשיפור ספיגת האמפולות."},
+      {name:"טיפול מסכת LED", desc:"משפר את ספיגת המוצרים ומפחית דלקת בעור. תומך בהתחדשות העצמית ובשיפור הכללי של העור."},
+      {name:"PDRN", desc:"מקטעי DNA המכוונים באופן סלקטיבי לאזורים פגומים, ומקדמים הפחתת דלקת, התרבות תאים והתחדשות רקמות. שימוש עקבי משפר את גמישות הנקבוביות ומחזק את העור מבפנים."}
+    ],
+    guideNote:"נסיים בשליחת מדריך שגרת טיפוח אישי לחודש במייל.",
+    thanks:"תודה שהפקדת בידינו את זמנך. 🌿"
+  }
+};
+Object.assign(SHEET, SHEET_EXTRA);
 function sheet(){ return SHEET[selfLang] || SHEET.en; }
 
 function buildSessionSheetHTML(){

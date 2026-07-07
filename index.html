@@ -1237,9 +1237,9 @@ function renderSelfStep(){
         </div>
       </div>
       <div class="self-card">
-        <div class="self-q-title" style="font-size:18px">How did you book? <span style="font-size:13px;color:var(--muted)">예약 경로</span></div>
+        <div class="self-q-title" style="font-size:18px">How did you hear about us? <span style="font-size:13px;color:var(--muted)">방문 경로</span></div>
         <div class="self-opt-wrap">
-          ${[["클룩","Klook 클룩"],["워크인","Walk-in 워크인"],["네이버","Naver 네이버"],["인스타그램","Instagram 인스타"],["구글맵","Google Maps 구글맵"]].map(srcOpt=>`<button class="self-opt-btn ${selfData.source===srcOpt[0]?'sel':''}" onclick="selfPickSource('${srcOpt[0]}')">${srcOpt[1]}</button>`).join("")}
+          ${[["Instagram","Instagram"],["YouTube","YouTube"],["Google","Google (Search / Maps)"],["Naver","Naver 네이버"],["Klook","Klook 클룩"],["KKday","KKday"],["Trazy","Trazy"],["Website","Official Website"],["Friend","Friend / Word of mouth"],["Guide","Tour guide / Travel agency"],["Hotel","Hotel / Guesthouse"],["Walk-in","Walk-in / Passing by"],["Blog","Blog / Article"],["Other","Other"]].map(srcOpt=>`<button class="self-opt-btn ${selfData.source===srcOpt[0]?'sel':''}" onclick="selfPickSource('${srcOpt[0]}')">${srcOpt[1]}</button>`).join("")}
         </div>
       </div>
       <div class="self-card">

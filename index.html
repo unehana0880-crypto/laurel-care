@@ -228,6 +228,7 @@ textarea{resize:vertical;line-height:1.6;}
 /* ══ 큰 모니터 대응 (추가 전용) ══ */
 @media (min-width:1200px){
   .main{max-width:1000px;padding:44px 32px 90px;}
+  .self-lang-grid{grid-template-columns:repeat(5,1fr);}
   .measure-grid{grid-template-columns:repeat(4,1fr);}
   .self-page{max-width:800px;}
 }
@@ -292,6 +293,7 @@ textarea{resize:vertical;line-height:1.6;}
       <button class="self-lang-btn" onclick="selfStartLang('zh')"><span class="self-lang-flag">🇨🇳</span><div class="self-lang-name">中文</div><div class="self-lang-sub">Chinese</div></button>
       <button class="self-lang-btn" onclick="selfStartLang('fr')"><span class="self-lang-flag">🇫🇷</span><div class="self-lang-name">Français</div><div class="self-lang-sub">French</div></button>
       <button class="self-lang-btn" onclick="selfStartLang('de')"><span class="self-lang-flag">🇩🇪</span><div class="self-lang-name">Deutsch</div><div class="self-lang-sub">German</div></button>
+      <button class="self-lang-btn" onclick="selfStartLang('it')"><span class="self-lang-flag">🇮🇹</span><div class="self-lang-name">Italiano</div><div class="self-lang-sub">Italian</div></button>
       <button class="self-lang-btn" onclick="selfStartLang('es')"><span class="self-lang-flag">🇪🇸</span><div class="self-lang-name">Español</div><div class="self-lang-sub">Spanish</div></button>
       <button class="self-lang-btn" onclick="selfStartLang('ar')"><span class="self-lang-flag">🇸🇦</span><div class="self-lang-name">العربية</div><div class="self-lang-sub">Arabic</div></button>
       <button class="self-lang-btn" onclick="selfStartLang('he')"><span class="self-lang-flag">🇮🇱</span><div class="self-lang-name">עברית</div><div class="self-lang-sub">Hebrew</div></button>
@@ -751,6 +753,35 @@ const SHEET_EXTRA = {
     guideNote:"Terminaremos enviándole por correo una guía personalizada de rutina de un mes.",
     thanks:"Gracias por confiarnos su tiempo. 🌿"
   },
+  it: {
+    title:"Scheda della sessione di oggi",
+    introGreeting:"{name}, da Laurel Studio ogni trattamento è personalizzato. Teniamo conto di quanto ha indicato, e la sua terapista valuta la pelle di persona per offrire il trattamento più sicuro e delicato, utilizzando i dispositivi, le fiale e i prodotti più adatti a lei. Quando la pelle è indebolita, diamo priorità a una cura delicata e riparatrice; quando è sana, usiamo prodotti che la portano un passo più avanti.",
+    introHydration:"La pelle è il più grande organo protettivo del corpo, e un'idratazione costante è essenziale per una barriera sana. Il trattamento di oggi inizia idratando e preparando la pelle ad assorbire i principi attivi, seguito da fiale e sieri personalizzati. Si rilassi, chiuda gli occhi e si goda questo momento di quiete e rigenerazione.",
+    yourCheck:"Quanto ci ha indicato",
+    skinType:"Tipo di pelle", concerns:"Preoccupazioni", goals:"Obiettivi", program:"Programma di oggi",
+    durationTitle:"Durata del trattamento",
+    durPremium:"Premium — circa 60–70 minuti",
+    durSignature:"Signature — circa 50–60 minuti",
+    durBody:"Corpo — entro circa 90 minuti da adesso",
+    stepsTitle:"Fasi del trattamento di oggi",
+    lblProducts:"Prodotti", lblPurpose:"Finalità",
+    steps:[
+      {title:"Fase 1 · Detersione profonda & Esfoliazione", products:"Latte detergente estetico & PHA", purpose:"Rimuovere le impurità e migliorare l'assorbimento"},
+      {title:"Fase 2 · Maschera idratante intensiva + LED", products:"Maschera in gel altamente idratante (particelle d'acqua fini ad alto assorbimento, una settimana di idratazione)", purpose:"Idratazione intensa e lenitiva. Maschera LED — usata in dermatologia per l'assorbimento e in ortopedia per ridurre l'infiammazione profonda"},
+      {title:"Fase 3 · Trattamento personalizzato", products:"Fiale e sieri personalizzati", purpose:"Tonicità, idratazione profonda e nutrimento"},
+      {title:"Fase 4 · Finitura – Maschera", products:"Maschera estetica personalizzata", purpose:"Protezione della pelle e rinforzo della barriera"},
+      {title:"Fase 5 · Idratazione finale", products:"Crema idratante rigenerante & protezione solare", purpose:"Sigillare l'idratazione e proteggere la pelle"}
+    ],
+    tenProducts:"Utilizziamo 10 prodotti estetici coreani professionali, adatti anche alle pelli sensibili.",
+    specialTitle:"Trattamenti speciali",
+    special:[
+      {name:"Peeling delicato PHA", desc:"Un peeling delicato adatto alle pelli sensibili che rimuove cellule morte e punti neri. Si applica con un dischetto di cotone subito dopo la detersione. Da usare 1–2 volte a settimana per donare luminosità e migliorare l'assorbimento delle fiale."},
+      {name:"Terapia con maschera LED", desc:"Migliora l'assorbimento dei prodotti e riduce l'infiammazione cutanea. Sostiene l'autorigenerazione e il miglioramento generale della pelle."},
+      {name:"PDRN", desc:"Frammenti di DNA che agiscono selettivamente sulle zone danneggiate, favorendo l'azione antinfiammatoria, la proliferazione cellulare e la rigenerazione dei tessuti. L'uso costante migliora l'elasticità dei pori e rafforza la pelle dall'interno."}
+    ],
+    guideNote:"Al termine le invieremo via email una guida personalizzata con la routine di un mese.",
+    thanks:"Grazie per averci dedicato il suo tempo. 🌿"
+  },
   ar: {
     title:"بطاقة جلسة اليوم",
     introGreeting:"{name}، في لوريل ستوديو كل عناية مصممة خصيصاً لك. نأخذ في الاعتبار ما اخترته، وتقوم المختصة بفحص بشرتك مباشرةً لتقديم أكثر عناية أماناً ولطفاً — باستخدام الأجهزة والأمبولات والمنتجات الأنسب لك. عندما تكون البشرة ضعيفة نركّز على عناية صحية لطيفة، وعندما تكون صحية نستخدم منتجات ترتقي بها خطوة أبعد.",
@@ -1065,6 +1096,30 @@ const T = {
     saving:"Guardando...", saved:"Guardado", saveFailed:"Falló — intente de nuevo",
     summarySkin:"Tipo de piel", summaryConcerns:"Preocupaciones", summaryGoals:"Objetivos",
     guardianNotice:"Continuar con este cuestionario confirma que se cuenta con el consentimiento del tutor."
+  },
+  it: {
+    title:"Ci parli della sua pelle", subtitle:"Richiede circa 3-5 minuti",
+    back:"← Indietro", next:"Avanti →", handToTherapist:"Consegnare alla terapista →",
+    s1_title:"Informazioni di base", s1_sub:"Inserisca i suoi dati",
+    name:"Nome", email:"Email", age:"Fascia d'età", gender:"Genere",
+    nationality:"Nazionalità", residence:"Residenza attuale",
+    namePh:"Il suo nome", emailPh:"example@email.com",
+    natPh:"es: Italiana", resPh:"es: Milano / Roma",
+    ageOpts:["Meno di 19","19-24","25-29","30-34","35-39","40-44","45-49","50-54","55+"],
+    genderOpts:["Femminile","Maschile","Altro"],
+    s2_title:"Come descriverebbe la sua pelle?", s2_sub:"Scelga l'opzione più simile",
+    skintypeOpts:["Grassa (sebo in eccesso, lucidità)","Secca (desquamazione, sensazione di tiraggio)","Mista (zona T grassa, guance secche)","Sensibile (rossore, irritazione)","Normale (equilibrata)"],
+    s3_title:"Le sue principali preoccupazioni", s3_sub:"Selezioni tutte le opzioni pertinenti",
+    concernOpts:["Acne / Imperfezioni","Pori ostruiti / Punti neri","Incarnato spento e irregolare","Iperpigmentazione / Macchie scure","Rossore / Irritazione","Rughe sottili / Invecchiamento","Perdita di tonicità","Secchezza / Disidratazione"],
+    s4_title:"Cosa desidera di più?", s4_sub:"Selezioni tutte le opzioni pertinenti",
+    goalOpts:["Lenire immediatamente","Idratazione profonda","Maggiore tonicità","Incarnato più luminoso e uniforme","Pelle più chiara","Anti-invecchiamento"],
+    memo:"C'è altro che dovremmo sapere? (Facoltativo)", memoPh:"es: Allergie, prodotti in uso, richieste particolari",
+    completeTitle:"Grazie!",
+    completeMsg:"Le sue informazioni sono state salvate in sicurezza.<br>Consegni il tablet alla sua terapista.",
+    errName:"Inserisca il suo nome", errEmail:"Inserisca un indirizzo email valido",
+    saving:"Salvataggio...", saved:"Salvato", saveFailed:"Errore — riprovi",
+    summarySkin:"Tipo di pelle", summaryConcerns:"Preoccupazioni", summaryGoals:"Obiettivi",
+    guardianNotice:"Proseguendo con questo questionario si conferma di avere il consenso del tutore."
   },
   ar: {
     title:"أخبرينا عن بشرتك", subtitle:"يستغرق الأمر 3-5 دقائق",

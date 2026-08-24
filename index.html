@@ -33,7 +33,7 @@
 body{background:var(--bg);color:var(--text);font-family:'DM Sans','Noto Sans KR',sans-serif;min-height:100vh;}
 body[dir="rtl"]{font-family:'Noto Sans Arabic','Noto Sans Hebrew','DM Sans',sans-serif;}
 body[lang="ja"]{font-family:'Noto Sans JP','DM Sans',sans-serif;}
-body[lang="zh"]{font-family:'Noto Sans SC','DM Sans',sans-serif;}
+body[lang="zh"]{font-family:'Noto Sans TC','DM Sans',sans-serif;}
 
 .header{background:var(--text);padding:18px 40px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;}
 .logo{font-family:'Cormorant Garamond',serif;font-size:15px;letter-spacing:4px;color:#C4A882;text-transform:uppercase;font-weight:400;}
@@ -175,6 +175,8 @@ textarea{resize:vertical;line-height:1.6;}
 .self-lang-btn{padding:24px 18px;background:var(--surface);border:1.5px solid var(--border);border-radius:6px;cursor:pointer;text-align:center;transition:all 0.15s;font-family:inherit;}
 .self-lang-btn:hover{border-color:var(--section-self);background:var(--section-self-bg);}
 .self-lang-flag{font-size:36px;margin-bottom:8px;display:block;}
+/* 국기 이모지 대신 글자를 쓰는 언어 — 버튼 높이를 국기와 똑같이 맞춘다 */
+.self-lang-flag.glyph{font-size:32px;line-height:42px;height:42px;font-weight:500;}
 .self-lang-name{font-size:14px;color:var(--text);font-weight:500;}
 .self-lang-sub{font-size:11px;color:var(--muted);margin-top:2px;}
 
@@ -284,13 +286,13 @@ textarea{resize:vertical;line-height:1.6;}
     <div class="sec-header" style="text-align:center;margin-bottom:20px">
       <div class="sec-eyebrow" style="color:var(--section-self)">Welcome to Laurel Studio</div>
       <div class="sec-title" style="font-size:32px">Please choose your language</div>
-      <div class="sec-desc" style="margin-top:10px">언어를 선택해 주세요 · 言語を選択 · 选择语言</div>
+      <div class="sec-desc" style="margin-top:10px">언어를 선택해 주세요 · 言語を選択 · 選擇語言</div>
     </div>
     <div class="self-lang-grid">
       <button class="self-lang-btn" onclick="selfStartLang('ko')"><span class="self-lang-flag">🇰🇷</span><div class="self-lang-name">한국어</div><div class="self-lang-sub">Korean</div></button>
-      <button class="self-lang-btn" onclick="selfStartLang('en')"><span class="self-lang-flag">🇺🇸</span><div class="self-lang-name">English</div><div class="self-lang-sub">英语</div></button>
+      <button class="self-lang-btn" onclick="selfStartLang('en')"><span class="self-lang-flag">🇺🇸</span><div class="self-lang-name">English</div><div class="self-lang-sub">英語</div></button>
       <button class="self-lang-btn" onclick="selfStartLang('ja')"><span class="self-lang-flag">🇯🇵</span><div class="self-lang-name">日本語</div><div class="self-lang-sub">Japanese</div></button>
-      <button class="self-lang-btn" onclick="selfStartLang('zh')"><span class="self-lang-flag">🇨🇳</span><div class="self-lang-name">中文</div><div class="self-lang-sub">Chinese</div></button>
+      <button class="self-lang-btn" onclick="selfStartLang('zh')"><span class="self-lang-flag glyph">繁</span><div class="self-lang-name">繁體中文</div><div class="self-lang-sub">Traditional Chinese</div></button>
       <button class="self-lang-btn" onclick="selfStartLang('fr')"><span class="self-lang-flag">🇫🇷</span><div class="self-lang-name">Français</div><div class="self-lang-sub">French</div></button>
       <button class="self-lang-btn" onclick="selfStartLang('de')"><span class="self-lang-flag">🇩🇪</span><div class="self-lang-name">Deutsch</div><div class="self-lang-sub">German</div></button>
       <button class="self-lang-btn" onclick="selfStartLang('it')"><span class="self-lang-flag">🇮🇹</span><div class="self-lang-name">Italiano</div><div class="self-lang-sub">Italian</div></button>
@@ -638,33 +640,33 @@ const SHEET_EXTRA = {
     thanks:"大切なお時間を私たちに預けてくださり、ありがとうございます。🌿"
   },
   zh: {
-    title:"今日护理单",
-    introGreeting:"{name}，在罗蕾尔工作室，每一项护理都是量身定制的。我们会参考您勾选的内容，并由护理师亲自确认您的肌肤状态，以最安全、最温和的方式进行护理。我们会使用最适合您的仪器、安瓶与产品；当肌肤较为脆弱时以健康养护为主，肌肤健康时则使用能更进一步提升的产品。",
-    introHydration:"皮肤是人体最大的保护器官，健康的肌肤屏障离不开持续的补水。今日护理将从为肌肤补水、帮助有效成分吸收开始，随后使用适合您的安瓶与精华。请放松，闭上眼睛，享受这段修护肌肤的宁静时光。",
-    yourCheck:"您勾选的内容",
-    skinType:"肤质", concerns:"肌肤困扰", goals:"期望效果", program:"今日项目",
-    durationTitle:"今日护理时间",
-    durPremium:"高级护理 — 约60〜70分钟",
-    durSignature:"招牌护理 — 约50〜60分钟",
-    durBody:"身体护理 — 从现在起约90分钟内",
-    stepsTitle:"今日护理步骤",
-    lblProducts:"产品", lblPurpose:"目的",
+    title:"今日護理單",
+    introGreeting:"{name}，在羅蕾爾工作室，每一項護理都是量身訂製的。我們會參考您勾選的內容，並由護理師親自確認您的肌膚狀態，以最安全、最溫和的方式進行護理。我們會使用最適合您的儀器、安瓶與產品；當肌膚較為脆弱時以健康養護為主，肌膚健康時則使用能更進一步提升的產品。",
+    introHydration:"皮膚是人體最大的保護器官，健康的肌膚屏障離不開持續的補水。今日護理將從為肌膚補水、幫助有效成分吸收開始，隨後使用適合您的安瓶與精華。請放鬆，閉上眼睛，享受這段修護肌膚的寧靜時光。",
+    yourCheck:"您勾選的內容",
+    skinType:"膚質", concerns:"肌膚困擾", goals:"期望效果", program:"今日項目",
+    durationTitle:"今日護理時間",
+    durPremium:"高級護理 — 約60〜70分鐘",
+    durSignature:"招牌護理 — 約50〜60分鐘",
+    durBody:"身體護理 — 從現在起約90分鐘內",
+    stepsTitle:"今日護理步驟",
+    lblProducts:"產品", lblPurpose:"目的",
     steps:[
-      {title:"Step 1 · 深层清洁 & 去角质", products:"美容牛奶洁面 & PHA", purpose:"清除杂质，提升产品吸收"},
-      {title:"Step 2 · 深层补水膜 + LED光疗", products:"高浓度啫喱型补水膜(小分子水粒吸收力强，提供一周的水润感)", purpose:"集中补水与舒缓。LED面膜 — 皮肤科用于提升吸收，骨科用于减轻深层组织炎症"},
-      {title:"Step 3 · 定制护理", products:"个人定制安瓶与精华", purpose:"紧致、深层补水与滋养"},
-      {title:"Step 4 · 收尾 – 面膜", products:"个人定制美容面膜", purpose:"保护肌肤并强化屏障"},
-      {title:"Step 5 · 最后保湿", products:"修护保湿霜 & 防晒霜", purpose:"锁住水分，保护肌肤"}
+      {title:"Step 1 · 深層清潔 & 去角質", products:"美容牛奶潔面 & PHA", purpose:"清除雜質，提升產品吸收"},
+      {title:"Step 2 · 深層補水膜 + LED光療", products:"高濃度凝膠型補水膜(小分子水粒吸收力強，提供一週的水潤感)", purpose:"集中補水與舒緩。LED面膜 — 皮膚科用於提升吸收，骨科用於減輕深層組織炎症"},
+      {title:"Step 3 · 客製化護理", products:"個人化安瓶與精華", purpose:"緊緻、深層補水與滋養"},
+      {title:"Step 4 · 收尾 – 面膜", products:"個人化美容面膜", purpose:"保護肌膚並強化屏障"},
+      {title:"Step 5 · 最後保濕", products:"修護保濕霜 & 防曬霜", purpose:"鎖住水分，保護肌膚"}
     ],
-    tenProducts:"我们使用了10种适合敏感肌的韩国专业美容产品。",
-    specialTitle:"特别护理",
+    tenProducts:"我們使用了10種適合敏感肌的韓國專業美容產品。",
+    specialTitle:"特別護理",
     special:[
-      {name:"柔和焕肤 PHA", desc:"适合敏感肌的温和焕肤，去除角质与黑头。洁面后立即用化妆棉涂抹，每周使用1〜2次可提升光泽与安瓶吸收。"},
-      {name:"LED光面膜疗程", desc:"提升外用产品的吸收，减轻肌肤炎症，支持肌肤自我修复与整体改善。"},
-      {name:"PDRN", desc:"能选择性作用于受损部位的DNA片段，促进抗炎、细胞增殖与组织再生。持续使用可改善毛孔弹性，由内强健肌肤。"}
+      {name:"柔和煥膚 PHA", desc:"適合敏感肌的溫和煥膚，去除角質與黑頭。潔面後立即用化妝棉塗抹，每週使用1〜2次可提升光澤與安瓶吸收。"},
+      {name:"LED光面膜療程", desc:"提升外用產品的吸收，減輕肌膚炎症，支持肌膚自我修復與整體改善。"},
+      {name:"PDRN", desc:"能選擇性作用於受損部位的DNA片段，促進抗炎、細胞增殖與組織再生。持續使用可改善毛孔彈性，由內強健肌膚。"}
     ],
-    guideNote:"最后，我们会通过邮件为您发送专属的一个月居家护理指南。",
-    thanks:"感谢您将宝贵的时间托付给我们。🌿"
+    guideNote:"最後，我們會透過電子郵件為您發送專屬的一個月居家護理指南。",
+    thanks:"感謝您將寶貴的時間託付給我們。🌿"
   },
   fr: {
     title:"Fiche de soin du jour",
@@ -1002,28 +1004,28 @@ const T = {
     guardianNotice:"本チェックリストを進めることは、保護者の同意があることを意味します。"
   },
   zh: {
-    title:"请告诉我们您的肌肤情况", subtitle:"大约需要3-5分钟",
-    back:"← 上一步", next:"下一步 →", handToTherapist:"交给护理师 →",
-    s1_title:"基本信息", s1_sub:"请填写您的信息",
-    name:"姓名", email:"邮箱", age:"年龄段", gender:"性别",
-    nationality:"国籍", residence:"目前居住地",
+    title:"請告訴我們您的肌膚情況", subtitle:"大約需要3-5分鐘",
+    back:"← 上一步", next:"下一步 →", handToTherapist:"交給護理師 →",
+    s1_title:"基本資料", s1_sub:"請填寫您的資料",
+    name:"姓名", email:"電子郵件", age:"年齡層", gender:"性別",
+    nationality:"國籍", residence:"目前居住地",
     namePh:"您的姓名", emailPh:"example@email.com",
-    natPh:"例如: 中国", resPh:"例如: 北京 / 上海",
-    ageOpts:["19岁以下","19-24岁","25-29岁","30-34岁","35-39岁","40-44岁","45-49岁","50-54岁","55岁以上"],
+    natPh:"例如: 台灣 / 香港", resPh:"例如: 台北 / 香港",
+    ageOpts:["19歲以下","19-24歲","25-29歲","30-34歲","35-39歲","40-44歲","45-49歲","50-54歲","55歲以上"],
     genderOpts:["女性","男性","其他"],
-    s2_title:"您认为自己的肤质?", s2_sub:"请选择最接近的一项",
-    skintypeOpts:["油性 (皮脂多, 油光)","干性 (起皮, 紧绷, 粗糙)","混合性 (T区油, 两颊干)","敏感性 (泛红, 刺激)","中性 (平衡良好)"],
-    s3_title:"主要肌肤问题", s3_sub:"请选择所有适用项",
-    concernOpts:["痘痘 / 暗疮","毛孔堵塞 / 黑头","暗沉 / 肤色不均","色素沉着 / 暗斑","泛红 / 刺激","细纹 / 老化","弹性不足","干燥 / 缺水"],
-    s4_title:"最希望的效果", s4_sub:"请选择所有适用项",
-    goalOpts:["即时舒缓","深度补水","改善紧致","提亮均匀肤色","净化肌肤","抗衰老"],
-    memo:"其他想告知的内容 (可选)", memoPh:"例如: 过敏、正在使用的产品、特殊要求",
-    completeTitle:"非常感谢!",
-    completeMsg:"您填写的信息已安全保存。<br>请将平板交给护理师。",
-    errName:"请输入姓名", errEmail:"请输入有效的邮箱",
-    saving:"保存中...", saved:"已保存", saveFailed:"保存失败 — 请重试",
-    summarySkin:"肤质", summaryConcerns:"问题", summaryGoals:"目标",
-    guardianNotice:"继续进行此问卷即表示已获得监护人同意。"
+    s2_title:"您認為自己的膚質?", s2_sub:"請選擇最接近的一項",
+    skintypeOpts:["油性 (皮脂多, 油光)","乾性 (起皮, 緊繃, 粗糙)","混合性 (T區油, 兩頰乾)","敏感性 (泛紅, 刺激)","中性 (平衡良好)"],
+    s3_title:"主要肌膚問題", s3_sub:"請選擇所有適用項",
+    concernOpts:["痘痘 / 暗瘡","毛孔堵塞 / 黑頭","暗沉 / 膚色不均","色素沉澱 / 暗斑","泛紅 / 刺激","細紋 / 老化","彈性不足","乾燥 / 缺水"],
+    s4_title:"最希望的效果", s4_sub:"請選擇所有適用項",
+    goalOpts:["即時舒緩","深度補水","改善緊緻","提亮均勻膚色","淨化肌膚","抗衰老"],
+    memo:"其他想告知的內容 (選填)", memoPh:"例如: 過敏、正在使用的產品、特殊要求",
+    completeTitle:"非常感謝!",
+    completeMsg:"您填寫的資料已安全儲存。<br>請將平板交給護理師。",
+    errName:"請輸入姓名", errEmail:"請輸入有效的電子郵件",
+    saving:"儲存中...", saved:"已儲存", saveFailed:"儲存失敗 — 請重試",
+    summarySkin:"膚質", summaryConcerns:"問題", summaryGoals:"目標",
+    guardianNotice:"繼續進行此問卷即表示已獲得監護人同意。"
   },
   fr: {
     title:"Parlez-nous de votre peau", subtitle:"Cela prend environ 3-5 minutes",

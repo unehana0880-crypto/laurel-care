@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Laurel Studio — Care Menu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300&display=swap">
+<style>
+:root{
+  --page:#E7E3DA; --sheet:#F6F3ED; --ink:#25241F; --dim:#57544B; --faint:#8C8677;
+  --line:#DCD6C8; --hair:#E7E2D6; --sage:#5F7359; --sage-soft:#EAEEE7; --char:#1D1C19;
+  --alert:#8E4B2E; --alert-soft:#F6EBE4;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--page);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:62rem;margin:0 auto;padding:2.5rem 1rem 9rem;display:flex;flex-direction:column;gap:2rem}
+.sheet{background:var(--sheet);border:1px solid var(--line);border-radius:3px;padding:3rem 2.6rem 2.6rem}
+@media(max-width:34rem){.sheet{padding:2rem 1.15rem 1.6rem}}
+
+.brand{font-family:"Cinzel",serif;font-weight:500;font-size:.74rem;letter-spacing:.36em;
+  color:var(--sage);text-indent:.36em}
+h1{font-family:"Cormorant Garamond",Georgia,serif;font-weight:300;
+  font-size:clamp(2.3rem,7vw,3.4rem);line-height:1.05;margin:.55rem 0 .5rem;letter-spacing:-.015em}
+.dek{margin:0;color:var(--dim);font-size:.97rem}
+.dek b{display:block;color:var(--ink);font-weight:400;font-family:"Cormorant Garamond",Georgia,serif;
+  font-size:1.32rem;font-style:italic;margin-top:.15rem}
+.hdr{border-bottom:1px solid var(--line);padding-bottom:1.5rem;margin-bottom:1.6rem}
+
+.tblwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%;min-width:44rem;font-size:.9rem}
+caption{caption-side:top;text-align:left;font-size:.7rem;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--faint);padding-bottom:.7rem}
+th,td{padding:.78rem .85rem;vertical-align:middle;border-bottom:1px solid var(--hair)}
+thead th{border-bottom:1px solid var(--line);padding-bottom:1rem;vertical-align:bottom}
+th.rowlab{text-align:left;width:9.5rem;font-weight:600;color:var(--ink);font-size:.87rem;line-height:1.35}
+th.rowlab span{display:block;color:var(--faint);font-weight:400;font-size:.78rem}
+td{text-align:center;color:var(--dim)}
+td.on{color:var(--ink)}
+.pname{font-family:"Cormorant Garamond",Georgia,serif;font-weight:500;font-size:1.22rem;
+  color:var(--ink);line-height:1.2}
+.pname span{display:block;font-family:inherit;font-weight:400;font-size:.82rem;color:var(--faint);margin-top:.2rem}
+.badge{display:inline-block;margin-top:.5rem;background:var(--sage-soft);color:var(--sage);
+  font-size:.63rem;font-weight:600;letter-spacing:.16em;padding:.24rem .55rem;border-radius:2px}
+col.feature{background:rgba(95,115,89,.05)}
+.price{font-family:"Cormorant Garamond",Georgia,serif;font-size:1.5rem;color:var(--ink);
+  font-variant-numeric:tabular-nums;line-height:1.15}
+.price span{display:block;font-family:inherit;font-size:.8rem;color:var(--faint)}
+.dash{color:var(--faint)}
+.yes{color:var(--sage);font-weight:600}
+
+.pkg{border-top:1px solid var(--line);padding:1.6rem 0 .3rem}
+.pkg:first-of-type{border-top:0;padding-top:.4rem}
+.pkghead{display:flex;justify-content:space-between;align-items:baseline;gap:1.2rem;flex-wrap:wrap}
+.pkghead h3{margin:0;font-family:"Cormorant Garamond",Georgia,serif;font-weight:400;
+  font-size:1.62rem;line-height:1.2}
+.pkghead h3 em{font-style:normal;color:var(--faint);font-size:1.05rem;font-family:inherit}
+.pkghead .p{font-family:"Cormorant Garamond",Georgia,serif;font-size:1.42rem;white-space:nowrap;
+  font-variant-numeric:tabular-nums}
+.pkghead .p small{font-family:inherit;font-size:.82rem;color:var(--faint)}
+.sum{margin:.5rem 0 .8rem;color:var(--dim);font-size:.95rem}
+.pkg ul{margin:0 0 .8rem;padding:0;list-style:none;display:flex;flex-direction:column;gap:.34rem}
+.pkg li{position:relative;padding-left:1.15rem;font-size:.93rem;color:var(--ink)}
+.pkg li::before{content:'';position:absolute;left:0;top:.72em;width:9px;height:1px;background:var(--sage)}
+.best{margin:0;font-family:"Cormorant Garamond",Georgia,serif;font-style:italic;font-size:1.06rem;color:var(--dim)}
+
+.note{margin-top:1.8rem;border-top:1px solid var(--line);padding-top:1.2rem;
+  font-size:.88rem;color:var(--dim);line-height:1.75}
+.note b{color:var(--ink);font-weight:600}
+.alert{margin-top:1rem;background:var(--alert-soft);border-left:3px solid var(--alert);
+  padding:.85rem 1rem;border-radius:0 3px 3px 0;font-size:.88rem;line-height:1.7;color:var(--ink)}
+.alert b{color:var(--alert);font-weight:700}
+
+/* 자세한 메뉴 접기 */
+.more{margin-top:.4rem}
+.more>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:.5rem;
+  background:var(--sheet);border:1px solid var(--line);border-radius:3px;padding:1rem;
+  font-size:.88rem;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);font-weight:600}
+.more>summary::-webkit-details-marker{display:none}
+.more>summary::after{content:'▾';font-size:.8rem}
+.more[open]>summary::after{content:'▴'}
+.more[open]>summary{margin-bottom:2rem}
+.more .sheet+.sheet{margin-top:2rem}
+
+/* 시작 버튼 */
+.cta{position:fixed;left:0;right:0;bottom:0;z-index:40;
+  padding:1rem 1rem calc(1rem + env(safe-area-inset-bottom));
+  background:linear-gradient(to top, var(--page) 62%, rgba(231,227,218,0))}
+.cta .in{max-width:62rem;margin:0 auto}
+.cta a{display:flex;align-items:center;justify-content:center;gap:.6rem;
+  background:var(--char);color:#F6F3ED;text-decoration:none;
+  padding:1.15rem;border-radius:3px;font-size:1.02rem;font-weight:600;letter-spacing:.02em;
+  box-shadow:0 6px 22px rgba(29,28,25,.24)}
+.cta a em{font-style:normal;font-family:"Cormorant Garamond",Georgia,serif;font-size:1.15rem;
+  color:#C8CFC4;letter-spacing:.04em}
+.cta a:active{opacity:.85}
+.foot{text-align:center;font-size:.76rem;color:var(--faint);letter-spacing:.06em}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<!-- ══ 비교표 ══ -->
+<section class="sheet">
+  <div class="hdr">
+    <div class="brand">LAUREL STUDIO</div>
+    <h1>Find your care</h1>
+    <p class="dek">세 가지 케어 중 나에게 맞는 것을 골라보세요<b>Pick the ritual that fits you.</b></p>
+  </div>
+
+  <div class="tblwrap">
+  <table>
+    <caption>Three programs · 세 가지 프로그램</caption>
+    <colgroup><col><col><col><col class="feature"></colgroup>
+    <thead>
+      <tr>
+        <th></th>
+        <th><div class="pname">Personal Signature<span>퍼스널 시그니처</span></div></th>
+        <th><div class="pname">Personal Premium<span>퍼스널 프리미엄</span></div></th>
+        <th><div class="pname">Body &amp; Skin<span>퍼스널 바디 &amp; 스킨</span></div>
+            <span class="badge">MOST COMPLETE</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><th class="rowlab">Time<span>시간</span></th>
+        <td class="on">50 min</td><td class="on">60 min</td><td class="on">90 min</td></tr>
+      <tr><th class="rowlab">Price<span>가격</span></th>
+        <td><div class="price">$54<span>83,000원</span></div></td>
+        <td><div class="price">$73<span>110,000원</span></div></td>
+        <td><div class="price">$110<span>165,000원</span></div></td></tr>
+      <tr><th class="rowlab">Focus<span>중심</span></th>
+        <td>Face</td><td>Face — advanced</td><td>Body + Face</td></tr>
+      <tr><th class="rowlab">Skin reading<span>피부 진단</span></th>
+        <td>Every visit</td><td>Every visit</td><td>Every visit</td></tr>
+      <tr><th class="rowlab">Cleansing<span>클렌징</span></th>
+        <td>Tailored to your skin</td><td>Tailored to your skin</td><td>Tailored to your skin</td></tr>
+      <tr><th class="rowlab">Mask<span>팩</span></th>
+        <td>Personalized ampoule<br>+ mask</td>
+        <td>Personalized ampoule<br>+ premium mask</td>
+        <td>Sheet mask<br>— your choice</td></tr>
+      <tr><th class="rowlab">Body care<span>바디</span></th>
+        <td><span class="dash">—</span></td><td><span class="dash">—</span></td>
+        <td class="on">Back &amp; legs by device<br>+ décolleté &amp; shoulder<br>massage by hand</td></tr>
+      <tr><th class="rowlab">Expert routine<span>전문가 루틴</span></th>
+        <td><span class="dash">—</span></td>
+        <td class="yes">Full routine<br><span style="font-size:.78rem;font-weight:400">by email</span></td>
+        <td class="on">Basic tips<br><span style="font-size:.78rem;color:var(--faint)">by email</span></td></tr>
+      <tr><th class="rowlab">Best for<span>추천</span></th>
+        <td>First visit,<br>quick glow</td>
+        <td>The full K-beauty ritual<br>with take-home guidance</td>
+        <td>Body relief + skin,<br>together</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p class="note">
+    <b>About the body program.</b> Back and legs are cared for by a warm heated bed. Décolleté,
+    shoulders and face are massaged by hand, by your therapist. <b>This is not a full-body massage.</b><br>
+    <span style="color:var(--faint)">등과 다리는 온열 베드로, 데콜테·어깨·얼굴은 전문가의 손으로 마사지합니다. 전신 마사지가 아닙니다.</span>
+  </p>
+
+  <p class="alert">
+    <b>Before you book.</b> Please tell us if you are pregnant, have a pacemaker or metal implant,
+    or have had surgery recently. The warm heated bed is not suitable during pregnancy — we will
+    guide you to a face-only program instead.<br>
+    <span style="color:var(--dim)">임신 중이시거나 심박조율기·체내 금속, 최근 수술 이력이 있으시면 예약 전에 알려주세요.
+    온열 베드는 임신 중 이용하실 수 없어 얼굴 전용 프로그램으로 안내해 드립니다.</span>
+  </p>
+</section>
+
+<!-- ══ 자세한 메뉴 ══ -->
+<details class="more">
+  <summary>Full menu · 자세한 메뉴 보기</summary>
+
+  <section class="sheet">
+    <div class="hdr">
+      <div class="brand">LAUREL STUDIO</div>
+      <h1>Care Menu</h1>
+      <p class="dek">Hongdae, Seoul · English-speaking consultation</p>
+    </div>
+
+    <div class="pkg">
+      <div class="pkghead"><h3>Package 1 — Personal Signature Care <em>50 min</em></h3>
+        <div class="p">USD 54 <small>83,000원</small></div></div>
+      <p class="sum">The essential personalized facial — matched to your skin on the day, never a fixed menu.</p>
+      <ul>
+        <li>Skin reading before anything is applied</li>
+        <li>Cleansing and light exfoliation matched to your barrier</li>
+        <li>Hydrating gel mask</li>
+        <li>Moisturizing cream for glow and barrier care</li>
+      </ul>
+      <p class="best">Best for a first visit, and a clean reset.</p>
+    </div>
+
+    <div class="pkg">
+      <div class="pkghead"><h3>Package 2 — Personal Premium Care <em>60 min</em></h3>
+        <div class="p">USD 73 <small>110,000원</small></div></div>
+      <p class="sum">Everything in Signature, plus the expert routine you take home with you.</p>
+      <ul>
+        <li>Full skin reading, written up for you</li>
+        <li>Deep cleansing and gentle exfoliation</li>
+        <li>Personalized ampoule and premium mask</li>
+        <li>Extended facial massage for skin and mind balance</li>
+        <li><b>Full expert routine by email — including what not to buy</b></li>
+      </ul>
+      <p class="best">Best for guests who want to leave Seoul knowing what their skin actually needs.</p>
+    </div>
+
+    <div class="pkg">
+      <div class="pkghead"><h3>Package 3 — Personal Body &amp; Skin Care <em>90 min</em></h3>
+        <div class="p">USD 110 <small>165,000원</small></div></div>
+      <p class="sum">Body and skin, cared for together in one ritual.</p>
+      <ul>
+        <li>Back and legs cared for by a warm heated bed</li>
+        <li>Décolleté and shoulder massage by hand, by your therapist</li>
+        <li>Sheet mask of your choice</li>
+        <li>Full Personal Signature facial included</li>
+        <li>Basic aftercare tips by email</li>
+      </ul>
+      <p class="best">Best for long flights and heavy walking days.</p>
+    </div>
+
+    <p class="note"><b>Please note.</b> Back and legs are cared for by a warm heated bed; décolleté,
+    shoulders and face are massaged by hand. <b>This is not a full-body massage.</b></p>
+    <p class="alert"><b>Before you book.</b> Tell us if you are pregnant, have a pacemaker or metal
+    implant, or have had surgery recently. The warm heated bed is not suitable during pregnancy —
+    we will guide you to a face-only program instead.</p>
+  </section>
+
+  <section class="sheet">
+    <div class="hdr">
+      <div class="brand">LAUREL STUDIO</div>
+      <h1>케어 메뉴</h1>
+      <p class="dek">서울 홍대 · 마포구 월드컵북로 7, 3층</p>
+    </div>
+
+    <div class="pkg">
+      <div class="pkghead"><h3>패키지 1 — 퍼스널 시그니처 케어 <em>50분</em></h3>
+        <div class="p">83,000원 <small>USD 54</small></div></div>
+      <p class="sum">기본 맞춤 페이셜 — 정해진 메뉴가 아니라, 그날의 피부에 맞춰 진행합니다.</p>
+      <ul>
+        <li>제품을 올리기 전 피부 진단</li>
+        <li>장벽 상태에 맞춘 클렌징과 가벼운 각질 정리</li>
+        <li>수분 젤리팩</li>
+        <li>광채와 장벽을 위한 보습 크림</li>
+      </ul>
+      <p class="best">첫 방문, 그리고 피부를 정리하고 싶을 때.</p>
+    </div>
+
+    <div class="pkg">
+      <div class="pkghead"><h3>패키지 2 — 퍼스널 프리미엄 케어 <em>60분</em></h3>
+        <div class="p">110,000원 <small>USD 73</small></div></div>
+      <p class="sum">시그니처의 모든 것에, <b>가지고 가시는 전문가 루틴</b>이 더해집니다.</p>
+      <ul>
+        <li>정밀 피부 진단 — 기록해서 정리해 드립니다</li>
+        <li>딥 클렌징과 부드러운 각질 정리</li>
+        <li>맞춤 앰플과 프리미엄 팩</li>
+        <li>피부와 마음을 함께 풀어주는 연장 페이셜 마사지</li>
+        <li><b>상세 전문가 루틴 이메일 — 사지 말아야 할 것까지</b></li>
+      </ul>
+      <p class="best">내 피부에 무엇이 필요한지 알고 돌아가고 싶은 분께.</p>
+    </div>
+
+    <div class="pkg">
+      <div class="pkghead"><h3>패키지 3 — 퍼스널 바디 &amp; 스킨 케어 <em>90분</em></h3>
+        <div class="p">165,000원 <small>USD 110</small></div></div>
+      <p class="sum">바디와 피부를 한 번에 관리합니다.</p>
+      <ul>
+        <li>등과 다리는 온열 베드로 케어</li>
+        <li>데콜테·어깨는 전문가의 손으로 마사지</li>
+        <li>원하시는 시트 마스크 선택</li>
+        <li>퍼스널 시그니처 페이셜 전체 포함</li>
+        <li>기본 홈케어 팁 이메일</li>
+      </ul>
+      <p class="best">장거리 비행과 많이 걸은 날에.</p>
+    </div>
+
+    <p class="note"><b>안내.</b> 등과 다리는 온열 베드로, 데콜테·어깨·얼굴은 전문가의 손으로 마사지합니다.
+    <b>전신 마사지가 아닙니다.</b></p>
+    <p class="alert"><b>예약 전 확인.</b> 임신 중이시거나 심박조율기·체내 금속, 최근 수술 이력이 있으시면
+    미리 알려주세요. 온열 베드는 임신 중 이용하실 수 없어 얼굴 전용 프로그램으로 안내해 드립니다.</p>
+  </section>
+</details>
+
+<p class="foot">LAUREL STUDIO · 서울 마포구 월드컵북로 7, 3층</p>
+</div>
+
+<div class="cta"><div class="in">
+  <a href="./care.html">시작하기 <em>Start</em></a>
+</div></div>
+
+</body>
+</html>

@@ -887,6 +887,102 @@ function buildSessionSheetHTML(){
 const WEBHOOK = "https://script.google.com/macros/s/AKfycbxbdtH3LbWfvbRl1dBt3fXejg2F8QGAipewlatItWh3HgSj_MynIWEvVm-tHiTC5jCLXA/exec";
 const THERAPIST_PASSWORD = "laurel2024";
 
+/* ══════════════════════════════════════════════════════════════
+   전송 안전장치  (2026-09 추가)
+   · 한 번 실패해도 앱이 알아서 다시 보냅니다 (총 3번)
+   · 보내기 전에 태블릿에 먼저 적어두고, 성공하면 지웁니다
+   · 앱을 다시 열면 못 보낸 게 있는지 확인해 자동으로 마저 보냅니다
+   ══════════════════════════════════════════════════════════════ */
+const NET_TRIES   = 3;          // 시도 횟수
+const NET_BACKOFF = [0, 1200, 3000];  // 각 시도 전 대기(ms)
+const NET_TIMEOUT = 15000;      // 한 번에 15초까지 기다림
+const DRAFT_KEY   = "laurel_care_pending";
+let netBusy     = false;   /* 저장이 진행 중 — 이때는 자동 재전송이 끼어들면 안 됩니다 */
+let netFlushing = false;   /* 자동 재전송이 진행 중 */
+
+function netSleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+/* 영어 에러를 사람이 알아볼 문구로 */
+function netReason(err){
+  const m = String((err && err.message) || err || "");
+  if (/abort/i.test(m))                      return "시간이 너무 오래 걸립니다 — 인터넷이 느립니다";
+  if (/failed to fetch|load failed|network/i.test(m))
+                                             return "인터넷에 연결되지 않았습니다 — 와이파이를 확인해 주세요";
+  if (/not valid json|unexpected token|<!doctype/i.test(m))
+                                             return "내용이 너무 길어 전송되지 않았습니다 — 메모를 줄여주세요";
+  return m;
+}
+
+/* 웹훅 호출 — 실패하면 스스로 다시 시도합니다 */
+async function callSheet(payload){
+  let last = null;
+  for (let i = 0; i < NET_TRIES; i++){
+    if (NET_BACKOFF[i]) await netSleep(NET_BACKOFF[i]);
+    try {
+      const url = WEBHOOK + "?data=" + encodeURIComponent(JSON.stringify(payload));
+      const ctl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+      const tid = ctl ? setTimeout(() => ctl.abort(), NET_TIMEOUT) : null;
+      const res = await fetch(url, ctl ? { signal: ctl.signal } : undefined);
+      if (tid) clearTimeout(tid);
+      const txt = await res.text();
+      let data;
+      try { data = JSON.parse(txt); }
+      catch(e){ throw new Error(txt.indexOf("<") === 0 ? "not valid JSON" : txt.slice(0,120)); }
+      if (data && data.status === "ok") return data;
+      /* 서버가 거절한 경우는 다시 보내도 같습니다 — 바로 알립니다 */
+      throw Object.assign(new Error(data && data.message || "save failed"), { _final: true });
+    } catch(err){
+      last = err;
+      console.warn("전송 실패 " + (i+1) + "/" + NET_TRIES + " —", err && err.message);
+      if (err && err._final) break;
+    }
+  }
+  throw last || new Error("save failed");
+}
+
+/* ── 태블릿 임시저장 ── */
+function draftSave(payload){
+  try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ at: Date.now(), payload: payload })); } catch(e){}
+}
+function draftClear(){
+  try { localStorage.removeItem(DRAFT_KEY); } catch(e){}
+}
+function draftRead(){
+  try { const v = localStorage.getItem(DRAFT_KEY); return v ? JSON.parse(v) : null; } catch(e){ return null; }
+}
+
+/* 앱을 열 때 — 못 보낸 기록이 남아 있으면 조용히 마저 보냅니다 */
+async function draftFlush(){
+  /* 저장이 진행 중이면 끼어들지 않고 잠시 뒤에 다시 봅니다 — 같은 기록이 두 번 들어가지 않게 */
+  if (netBusy)     { setTimeout(draftFlush, 6000); return; }
+  if (netFlushing) return;
+  const d = draftRead();
+  if (!d || !d.payload) return;
+  netFlushing = true;
+  try { await draftFlushInner(d.payload); } finally { netFlushing = false; }
+}
+async function draftFlushInner(p){
+  try {
+    /* 새 기록일 때만 중복 확인 — 수정(update)은 같은 행을 덮어쓰므로 그냥 다시 보냅니다 */
+    if (p.action !== "update" && p.case_id && p.client_email){
+      const chk = await callSheet({ action:"search", section:"CARE",
+                                    search_type:"email", search_value:p.client_email });
+      if (chk && Array.isArray(chk.results) &&
+          chk.results.some(r => String(r.case_id) === String(p.case_id))){
+        draftClear(); return;
+      }
+    }
+    await callSheet(p);
+    draftClear();
+    const who = p.client_name || "";
+    console.log("못 보낸 기록을 마저 보냈습니다:", who);
+    try { alert("⏳ 지난번에 저장되지 못한 기록 1건을 방금 마저 저장했습니다.\n\n" + who + " · " + (p.visit_date||"")); } catch(e){}
+  } catch(e){
+    console.warn("보류 중인 기록 재전송 실패 — 다음에 다시 시도합니다", e);
+  }
+}
+
+
 let step = 0;
 let mode = "input";
 let editMode = false;
@@ -1476,21 +1572,20 @@ async function saveSelfCheck(){
     payload[`visual_${cat}_after`] = "";
   });
 
+  draftSave(payload);
+  netBusy = true;
   try{
-    const url = WEBHOOK + "?data=" + encodeURIComponent(JSON.stringify(payload));
-    const response = await fetch(url);
-    const result = await response.json();
-    if(result.status === "ok"){
-      selfSavedRowNumber = result.row;
-      statusEl.innerHTML = `<span style="color:var(--success)">✓ ${lng.saved} · ${selfSavedCaseId}</span>`;
-    } else {
-      throw new Error(result.message || "save failed");
-    }
+    const result = await callSheet(payload);
+    selfSavedRowNumber = result.row;
+    draftClear();
+    statusEl.innerHTML = `<span style="color:var(--success)">✓ ${lng.saved} · ${selfSavedCaseId}</span>`;
   }catch(err){
-    statusEl.innerHTML = `<span style="color:var(--danger)">⚠ ${lng.saveFailed}<br>${err.message}</span><br><button onclick="saveSelfCheck()" style="margin-top:8px;padding:8px 20px;border:1px solid var(--danger);background:transparent;color:var(--danger);border-radius:3px;cursor:pointer;font-family:inherit;font-size:13px">↻ Retry · 다시 시도</button>`;
+    statusEl.innerHTML = `<span style="color:var(--danger)">⚠ ${lng.saveFailed}<br>${netReason(err)}<br><small style="opacity:.8">내용은 이 태블릿에 남아 있습니다 — 다시 시도해도 되고, 앱을 다시 열면 자동으로 보냅니다.</small></span><br><button onclick="saveSelfCheck()" style="margin-top:8px;padding:8px 20px;border:1px solid var(--danger);background:transparent;color:var(--danger);border-radius:3px;cursor:pointer;font-family:inherit;font-size:13px">↻ Retry · 다시 시도</button>`;
     selfSavedCaseId = null;
     selfSavedRowNumber = null;
     console.error(err);
+  } finally {
+    netBusy = false;
   }
 }
 
@@ -1584,8 +1679,7 @@ async function verifyRowNumberByCaseId(){
   if(!editCaseId || !selfData.email) return;
   try{
     const payload = {action:"search", section:"CARE", search_type:"email", search_value:selfData.email};
-    const res = await fetch(WEBHOOK + "?data=" + encodeURIComponent(JSON.stringify(payload)));
-    const data = await res.json();
+    const data = await callSheet(payload);
     if(data.status === "ok" && Array.isArray(data.results)){
       const hit = data.results.find(r => r.case_id === editCaseId);
       if(hit && hit._row_number){
@@ -1643,9 +1737,7 @@ async function doSearch() {
 
   try {
     const payload = {action:"search", section:"CARE", search_type:searchType, search_value:query};
-    const url = WEBHOOK + "?data=" + encodeURIComponent(JSON.stringify(payload));
-    const response = await fetch(url);
-    const data = await response.json();
+    const data = await callSheet(payload);
 
     if(data.status === "ok") {
       displaySearchResults(data);
@@ -1653,7 +1745,7 @@ async function doSearch() {
       resultsDiv.innerHTML = '<div class="search-empty">⚠ ' + (data.message||"검색 오류") + '</div>';
     }
   } catch(err) {
-    resultsDiv.innerHTML = '<div class="search-empty">⚠ 검색 실패 — 네트워크 확인</div>';
+    resultsDiv.innerHTML = '<div class="search-empty">⚠ ' + netReason(err) + '</div>';
     console.error(err);
   } finally {
     btn.disabled = false;
@@ -1707,16 +1799,14 @@ async function loadTodayList() {
   resultsDiv.innerHTML = '<div class="search-loading">📋 오늘 목록 불러오는 중...</div>';
   try {
     const payload = {action:"today", section:"CARE"};
-    const url = WEBHOOK + "?data=" + encodeURIComponent(JSON.stringify(payload));
-    const response = await fetch(url);
-    const data = await response.json();
+    const data = await callSheet(payload);
     if(data.status === "ok") {
       displaySearchResults(data, true);
     } else {
       resultsDiv.innerHTML = '<div class="search-empty">⚠ ' + (data.message||"오류") + '</div>';
     }
   } catch(err) {
-    resultsDiv.innerHTML = '<div class="search-empty">⚠ 오늘 목록 불러오기 실패 — 네트워크 확인</div>';
+    resultsDiv.innerHTML = '<div class="search-empty">⚠ ' + netReason(err) + '</div>';
     console.error(err);
   }
 }
@@ -2030,20 +2120,18 @@ async function finalSave(){
     care_summary: document.getElementById("care-summary").value,
   };
 
-  try{
-    let url;
-    if(editMode){
-      payload._row_number = editRowNumber;
-      payload.action = "update";
-      url = WEBHOOK + "?data=" + encodeURIComponent(JSON.stringify(payload));
-    } else {
-      url = WEBHOOK + "?data=" + encodeURIComponent(JSON.stringify(payload));
-    }
+  if(editMode){
+    payload._row_number = editRowNumber;
+    payload.action = "update";
+  }
+  draftSave(payload);
+  netBusy = true;
 
-    const response = await fetch(url);
-    const result = await response.json();
+  try{
+    const result = await callSheet(payload);
 
     if(result.status === "ok"){
+      draftClear();
       lastSaveOk = true;
       btn.textContent = editMode ? "✓ 수정 완료" : "✓ 저장 완료";
       btn.style.background="var(--success)";
@@ -2056,10 +2144,13 @@ async function finalSave(){
       throw new Error(result.message||"저장 실패");
     }
   }catch(err){
-    btn.textContent="저장 실패 — 재시도";
+    btn.textContent="저장 실패 — 다시 누르기";
     btn.disabled=false;
-    status.innerHTML=`<span style="color:var(--danger)">⚠ ${err.message||"네트워크 확인"}</span>`;
+    status.innerHTML=`<span style="color:var(--danger)">⚠ ${netReason(err)}`
+      + `<br><small style="opacity:.8">내용은 이 태블릿에 남아 있습니다. 다시 눌러보시고, 그래도 안 되면 앱을 닫았다 열면 자동으로 보냅니다.</small></span>`;
     console.error(err);
+  } finally {
+    netBusy = false;
   }
 }
 
@@ -2106,6 +2197,7 @@ document.addEventListener("DOMContentLoaded",()=>{
 
 initAll();
 updateUI();
+setTimeout(draftFlush, 1500);   /* 못 보낸 기록이 있으면 마저 보냅니다 */
 </script>
 </body>
 </html>

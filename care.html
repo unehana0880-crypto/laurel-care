@@ -400,11 +400,12 @@ textarea{resize:vertical;line-height:1.6;}
 .care-p b{display:inline;color:#FFE9B8;font-weight:800;font-size:17.5px;line-height:1.7}
 
 .care-belief{margin-top:26px;background:rgba(95,115,89,.16);
-  border-left:3px solid #7E9B76;padding:20px 22px;border-radius:0 8px 8px 0}
+  border-inline-start:3px solid #7E9B76;padding:20px 22px;
+  border-start-end-radius:8px;border-end-end-radius:8px}
 .care-belief .bh{font-size:23px;font-weight:800;margin-bottom:14px;color:#D6EACB;
   letter-spacing:-.015em;line-height:1.25}
 .care-belief p{font-size:16px;line-height:1.85;color:#BDB6A5;margin-bottom:12px}
-.care-belief ul{margin:0 0 12px;padding-left:20px}
+.care-belief ul{margin:0 0 12px;padding-inline-start:20px;padding-left:0}
 .care-belief li{font-size:16px;line-height:1.8;color:#BDB6A5;margin-bottom:11px}
 .care-belief li::marker{color:#7E9B76}
 .care-belief b{color:#E4F3DA;font-weight:800;font-size:17.5px}
@@ -995,8 +996,11 @@ const THERAPIST_PASSWORD = "laurel2024";
    · 앱을 다시 열면 못 보낸 게 있는지 확인해 자동으로 마저 보냅니다
    ══════════════════════════════════════════════════════════════ */
 const NET_TRIES   = 3;          // 시도 횟수
-const NET_BACKOFF = [0, 1200, 3000];  // 각 시도 전 대기(ms)
-const NET_TIMEOUT = 15000;      // 한 번에 15초까지 기다림
+const NET_BACKOFF = [0, 1500, 4000];  // 각 시도 전 대기(ms)
+/* ★ 구글 시트 쪽은 다른 저장이 끝나기를 최대 20초까지 기다립니다(LockService).
+   여기서 15초에 끊어버리면, 저장은 되는데 우리만 실패로 보고 또 보내게 됩니다.
+   두 대에서 동시에 쓸 때 이게 중복의 원인이라 20초보다 넉넉하게 잡습니다. */
+const NET_TIMEOUT = 35000;
 const DRAFT_KEY   = "laurel_care_pending";
 let netBusy     = false;   /* 저장이 진행 중 — 이때는 자동 재전송이 끼어들면 안 됩니다 */
 let netFlushing = false;   /* 자동 재전송이 진행 중 */
@@ -1015,9 +1019,16 @@ function netReason(err){
 }
 
 /* 웹훅 호출 — 실패하면 스스로 다시 시도합니다 */
-async function callSheet(payload){
+async function callSheet(payload, opts){
+  opts = opts || {};
+  const tries = opts.tries || NET_TRIES;
   let last = null;
-  for (let i = 0; i < NET_TRIES; i++){
+  for (let i = 0; i < tries; i++){
+    /* ★ 두 번째 시도부터는 — 아까 보낸 것이 이미 시트에 들어갔는지 먼저 확인합니다.
+       응답만 못 받고 저장은 됐을 수 있어서, 확인 없이 다시 보내면 줄이 두 번 생깁니다. */
+    if (i > 0 && typeof opts.landed === "function"){
+      try { const got = await opts.landed(); if (got) return got; } catch(e){}
+    }
     if (NET_BACKOFF[i]) await netSleep(NET_BACKOFF[i]);
     try {
       const url = WEBHOOK + "?data=" + encodeURIComponent(JSON.stringify(payload));
@@ -1039,6 +1050,20 @@ async function callSheet(payload){
     }
   }
   throw last || new Error("save failed");
+}
+
+/* 같은 기록이 이미 시트에 들어갔는지 — 오늘 목록에서 case_id를 찾아봅니다.
+   (이메일을 안 적은 손님도 확인되도록 '오늘 목록'으로 찾습니다) */
+async function sheetFindCase(caseId){
+  if (!caseId) return null;
+  try {
+    const chk = await callSheet({ action:"today", section:"CARE" }, { tries:1 });
+    if (chk && Array.isArray(chk.results)){
+      const hit = chk.results.find(r => String(r.case_id) === String(caseId));
+      if (hit) return { status:"ok", row: hit._row_number || hit.row || null, _already:true };
+    }
+  } catch(e){}
+  return null;
 }
 
 /* ── 태블릿 임시저장 ── */
@@ -1065,15 +1090,10 @@ async function draftFlush(){
 async function draftFlushInner(p){
   try {
     /* 새 기록일 때만 중복 확인 — 수정(update)은 같은 행을 덮어쓰므로 그냥 다시 보냅니다 */
-    if (p.action !== "update" && p.case_id && p.client_email){
-      const chk = await callSheet({ action:"search", section:"CARE",
-                                    search_type:"email", search_value:p.client_email });
-      if (chk && Array.isArray(chk.results) &&
-          chk.results.some(r => String(r.case_id) === String(p.case_id))){
-        draftClear(); return;
-      }
+    if (p.action !== "update" && p.case_id){
+      if (await sheetFindCase(p.case_id)){ draftClear(); return; }
     }
-    await callSheet(p);
+    await callSheet(p, { landed: () => (p.action === "update" ? null : sheetFindCase(p.case_id)) });
     draftClear();
     const who = p.client_name || "";
     console.log("못 보낸 기록을 마저 보냈습니다:", who);
@@ -1091,6 +1111,7 @@ let editRowNumber = null;
 let editCaseId = null;
 let searchType = "email";
 let lastSaveOk = false;
+let tpPendingCaseId = null;   /* 테라피스트 새 기록 번호 — 다시 눌러도 같은 번호를 씁니다 */
 
 let selfLang = "en";
 let selfStep = 0;
@@ -1099,6 +1120,7 @@ let selfData = {
   skintype:null, concerns:[], goals:[], memo:"", program:"", source:""
 };
 let selfSavedCaseId = null;
+let selfPendingCaseId = null;   /* 이번 손님에게 한 번만 발급한 번호 — 다시 보내도 같은 번호를 씁니다 */
 let selfSavedRowNumber = null;
 
 let d = {};
@@ -1656,7 +1678,231 @@ const CARE_TXT = {
     hint: "↓ 끝까지 내려서 읽어주세요",
     btn: "읽었습니다 →"
   }
-};
+,
+  ja: {
+    h1:"本日のケアの進め方",
+    lead:"すべての工程に理由があり、順番に意味があります。<br>家を建てるのと同じです — 地面を整え、基礎を据え、壁を立て、最後に屋根をかけます。",
+    steps:[
+      ["ひらく — 道をつくる",
+       "クレンジングのあと、やさしいPHAで肌のいちばん外側をやわらげます。垢すりの前に湯船につかるのと似ています。肌は細かく入り組んだ迷路のような構造です。<b>先に道をひらくことで、そのあとのものが実際に入っていきます。</b>"],
+      ["満たす — 水分マスク",
+       "次に15〜20分の水分ジェリーマスク。<b>いちばん大切な工程です。</b>何日も食べていない人に仕事を頼むところを想像してください。来ることは来ても、できることはほとんどありません。渇いた肌も同じで、どんなに良い成分も無駄になります。だからまず水を与えます。"],
+      ["めざめる — レッドLED",
+       "マスクがのっている間、レッドLEDを使います。肌の内側へ信号を送るもので、モールス信号のように細胞へ<b>「はたらく時間、回復する時間です」</b>と伝えます。レッドライトは現在使われている非侵襲的な方法のなかでも最もおだやかな部類です。切らず、はがさず、熱も加えず、ダウンタイムもありませんが、肌が自分で再生する働きを助けます。コラーゲンと肌の回復について臨床研究で良好な結果が報告されており、皮膚科でも同じ原理が使われています。"],
+      ["届ける — 有効成分",
+       "ここではじめて、鎮静・ハリ・トーンのための製品をのせます。空腹の人に良い道具を渡しても何も起きません。よく食べて目の覚めた人に渡せば、仕事が進みます。<b>同じ製品でも、ひらいて、満たして、めざめた肌の上でははるかによく働きます。</b>"],
+      ["閉じこめる — その日のクリスタルモデリングマスク",
+       "その日の肌に合わせて調合したモデリングマスクで仕上げます。できたての料理にラップをかける、鍋にふたをするのと同じです。ふたをしなければ、今のせた良い成分は空気中へ逃げてしまいます。<b>マスクが閉じこめるので、逃げるかわりに肌へ入っていきます。</b>"]
+    ],
+    beliefH:"わたしたちの考え — マッサージではなく、その肌に必要なことだけ",
+    beliefP:"<b>フェイシャルマッサージは行いません。</b>こするのが目的ではなく、肌を健やかにするのが目的だからです。<br><br>必要なときだけ<b>やさしいリンパケア</b>を行います。リンパの流れがとどこおらない程度に、そしてその日の肌が必要としているときだけです。",
+    beliefList:[
+      "<b>ニキビや炎症があるとき、機器でも手でも顔全体に広げることはしません。</b>",
+      "<b>肌がふさがって成分が入らない状態なら、何よりも先に道をひらきます。</b>",
+      "<b>全員に同じケアはしません。</b>はたらく準備ができていない肌を決まった手順に押しこむことはできません。毎回、その日目の前にある肌に合わせて組み立てます。"
+    ],
+    law:"法律上の理由もあります。韓国ではあん摩は視覚障がいのある有資格者に法律で留保された職域です（医療法第82条）。スキンケアスタジオが提供できるものではなく、当店も行いません。",
+    close:"これがわたしたちの信じるやり方です。工程を信じてお任せいただければ、結果でお応えします。",
+    short:"まとめると — ひらいて、満たして、めざめさせて、届けて、閉じこめる。そしてその肌に必要なことだけ。<br>同じ成分でも、ご自宅で急いで塗るときよりずっと多くの仕事をする理由です。",
+    hint:"↓ 最後までスクロールしてお読みください",
+    btn:"読みました →"
+  },
+  zh: {
+    h1:"今天的護理是這樣進行的",
+    lead:"每一個步驟都有理由，而順序很重要。<br>就像蓋房子：先整地、再打地基、立牆，最後蓋上屋頂。",
+    steps:[
+      ["打開 — 先開出通路",
+       "清潔後，我們用溫和的 PHA 軟化肌膚最外層，有點像去角質前先泡個熱水澡。肌膚的結構像一座緊密曲折的迷宮。<b>先打開通路，後面的一切才真的進得去。</b>"],
+      ["餵養 — 保濕面膜",
+       "接著是 15 到 20 分鐘的保濕果凍面膜。<b>這是最重要的一步。</b>想像請一個好幾天沒吃飯的人來做事，人是來了，但做不了什麼。乾渴的肌膚也一樣，再好的成分都會白白浪費。所以我們先給它水。"],
+      ["喚醒 — 紅光 LED",
+       "面膜敷著的時候，我們使用紅光 LED。它向肌膚內部送出訊號，像摩斯密碼一樣告訴細胞：<b>「該工作了，該修復了。」</b>紅光是目前非侵入式方式中最溫和的一種。不切、不剝、不加熱，沒有恢復期，卻能幫助肌膚自己進行修復。臨床研究在膠原蛋白與肌膚修復上已有正向結果，皮膚科診所也運用同樣的原理。"],
+      ["送進去 — 有效成分",
+       "到這一步，我們才放上舒緩、緊緻或提亮的產品。把好工具交給餓著肚子的人，什麼也不會發生；交給吃飽又清醒的人，事情就做成了。<b>同樣的產品，在打開、餵飽、喚醒過的肌膚上效果好得多。</b>"],
+      ["封住 — 當日調配的水晶模型面膜",
+       "最後以當天為您的肌膚調配的模型面膜收尾。想像剛做好的菜蓋上保鮮膜，或鍋子蓋上蓋子。沒有蓋子，剛放上的好成分會蒸發到空氣中。<b>面膜把它們封住，所以成分進入肌膚，而不是流失掉。</b>"]
+    ],
+    beliefH:"我們的原則 — 不做按摩，只做肌膚需要的",
+    beliefP:"<b>我們不做臉部按摩。</b>我們的目標不是搓揉肌膚，而是讓它健康。<br><br>必要時我們只做<b>溫和的淋巴照護</b>，剛好讓淋巴順暢流動，而且只在您當天的膚況需要時才做。",
+    beliefList:[
+      "<b>若您有痘痘或發炎，我們絕不會用儀器或雙手把它帶到整張臉。</b>",
+      "<b>若肌膚阻塞到成分進不去，我們會先打開通路，再做其他事。</b>",
+      "<b>我們不會對每個人做同樣的護理。</b>還沒準備好的肌膚，無法被推進固定流程。每一次都是依照當天眼前這張臉來安排。"
+    ],
+    law:"也有法律上的原因：在韓國，按摩是法律保留給視障有照從業人員的職業（醫療法第82條）。這不是皮膚管理工作室能提供的服務，我們也不提供。",
+    close:"這是我們相信的方式。把過程交給我們，我們用結果回應您。",
+    short:"簡單說 — 打開、餵養、喚醒、送進去、封住，而且只做肌膚需要的。<br>這就是同樣的成分在這裡能做到更多，而不只是在家匆匆抹上的原因。",
+    hint:"↓ 請滑到最後閱讀",
+    btn:"我已閱讀 →"
+  },
+  fr: {
+    h1:"Comment se déroule votre soin",
+    lead:"Chaque étape a une raison, et l'ordre compte.<br>C'est comme construire une maison : préparer le terrain, poser les fondations, monter les murs, puis le toit.",
+    steps:[
+      ["Assouplir &mdash; ouvrir le passage",
+       "Après le nettoyage, nous appliquons un PHA doux pour assouplir la toute première couche de la peau, un peu comme un bain chaud avant un gommage. Votre peau est construite comme un labyrinthe dense et sinueux. <b>L'assouplir d'abord ouvre les chemins, pour que tout ce qui suit puisse réellement pénétrer.</b>"],
+      ["Nourrir &mdash; le masque hydratant",
+       "Vient ensuite un masque gelée hydratant de 15 à 20 minutes. <b>C'est l'étape la plus importante.</b> Imaginez demander à quelqu'un de travailler après des jours sans manger. Il vient, mais ne peut pas faire grand-chose. Une peau sèche, c'est pareil : même les meilleurs ingrédients sont perdus. Nous lui donnons donc d'abord de l'eau."],
+      ["Réveiller &mdash; la lumière LED rouge",
+       "Pendant que le masque agit, nous utilisons la LED rouge. Elle envoie un signal dans la peau, presque comme du morse, qui dit aux cellules : <b>&laquo;&nbsp;Il est temps de travailler, temps de réparer.&nbsp;&raquo;</b> La lumière rouge est l'une des approches non invasives les plus douces aujourd'hui. Rien n'est coupé, ni pelé, ni chauffé, et il n'y a pas d'éviction sociale, et pourtant elle aide la peau à faire son propre travail de régénération. Des études cliniques ont montré des résultats prometteurs pour le collagène et la réparation cutanée, et les cabinets de dermatologie utilisent le même principe."],
+      ["Traiter &mdash; les actifs",
+       "C'est seulement maintenant que nous appliquons les produits apaisants, raffermissants ou éclaircissants. Donnez de bons outils à quelqu'un d'affamé : rien ne se passe. Donnez-les à quelqu'un de nourri et bien réveillé : le travail se fait. <b>Le même produit agit bien mieux sur une peau assouplie, nourrie et réveillée.</b>"],
+      ["Sceller &mdash; votre masque modelant cristal personnalisé",
+       "Nous terminons par un masque modelant, préparé pour votre peau du jour. Pensez à un film alimentaire sur un plat, ou à un couvercle sur une casserole. Sans couvercle, les bons ingrédients que nous venons d'appliquer s'évaporeraient. <b>Le masque les scelle, pour qu'ils pénètrent au lieu d'être perdus.</b>"]
+    ],
+    beliefH:"Notre conviction : pas de massage, seulement ce dont votre peau a besoin",
+    beliefP:"<b>Nous ne faisons pas de massage du visage.</b> Notre but n'est pas de frotter la peau, mais de la rendre saine.<br><br>Quand cela aide, nous pratiquons uniquement un <b>drainage lymphatique doux</b>, juste assez pour que la lymphe circule, et seulement si l'état de votre peau le demande.",
+    beliefList:[
+      "<b>Si vous avez de l'acné ou une inflammation, nous ne l'étalerons jamais sur tout le visage</b>, ni avec un appareil ni avec les mains.",
+      "<b>Si votre peau est obstruée au point que les actifs ne passent pas, nous ouvrons d'abord le passage</b>, avant toute chose.",
+      "<b>Nous ne donnons pas le même soin à tout le monde.</b> Une peau qui n'est pas prête ne peut pas être poussée dans un protocole figé. Chaque séance est construite autour de la peau que nous avons devant nous ce jour-là."
+    ],
+    law:"Il y a aussi une raison légale : en Corée, le massage est une profession réservée par la loi aux praticiens agréés déficients visuels (loi sur les services médicaux, article 82). Ce n'est pas quelque chose qu'un institut de soins de la peau devrait proposer, et nous ne le proposons pas.",
+    close:"C'est ce en quoi nous croyons. Faites-nous confiance pour le processus, et nous vous donnerons de vrais résultats.",
+    short:"En résumé : ouvrir, nourrir, réveiller, traiter, sceller &mdash; et uniquement ce dont votre peau a besoin.<br>C'est pourquoi les mêmes ingrédients font bien plus ici qu'appliqués à la hâte chez soi.",
+    hint:"↓ Faites défiler jusqu'à la fin",
+    btn:"J'ai lu →"
+  },
+  de: {
+    h1:"So läuft Ihre Behandlung ab",
+    lead:"Jeder Schritt hat einen Grund, und die Reihenfolge zählt.<br>Wie beim Hausbau: Boden vorbereiten, Fundament legen, Wände aufstellen, dann das Dach.",
+    steps:[
+      ["Öffnen &mdash; den Weg frei machen",
+       "Nach der Reinigung tragen wir ein mildes PHA auf, um die oberste Hautschicht weich zu machen &mdash; ein wenig wie ein warmes Bad vor dem Peeling. Ihre Haut ist wie ein enges, verwinkeltes Labyrinth gebaut. <b>Erst wenn wir sie weich machen, öffnen sich die Wege, damit alles Folgende wirklich hineinkommt.</b>"],
+      ["Nähren &mdash; die Feuchtigkeitsmaske",
+       "Danach folgt 15 bis 20 Minuten eine Feuchtigkeits-Gelmaske. <b>Das ist der wichtigste Schritt.</b> Stellen Sie sich vor, jemand soll arbeiten, nachdem er tagelang nichts gegessen hat. Er kommt, kann aber wenig ausrichten. Trockener Haut geht es genauso: Selbst die besten Wirkstoffe verpuffen. Deshalb geben wir ihr zuerst Wasser."],
+      ["Wecken &mdash; rotes LED-Licht",
+       "Während die Maske wirkt, setzen wir rotes LED-Licht ein. Es sendet ein Signal in die Haut, fast wie Morsezeichen, und sagt den Zellen: <b>&bdquo;Zeit zu arbeiten, Zeit zu reparieren.&ldquo;</b> Rotlicht gehört zu den sanftesten nicht-invasiven Verfahren, die es heute gibt. Nichts wird geschnitten, abgetragen oder erhitzt, es gibt keine Ausfallzeit &mdash; und doch unterstützt es die Haut bei ihrer eigenen Regeneration. Klinische Studien zeigen vielversprechende Ergebnisse für Kollagen und Hautreparatur; dermatologische Praxen nutzen dasselbe Prinzip."],
+      ["Behandeln &mdash; die Wirkstoffe",
+       "Erst jetzt tragen wir die Produkte auf, die beruhigen, festigen oder aufhellen. Gutes Werkzeug nützt einem hungrigen Arbeiter nichts. Einem satten, wachen Arbeiter schon. <b>Dasselbe Produkt wirkt auf geöffneter, genährter und geweckter Haut deutlich besser.</b>"],
+      ["Versiegeln &mdash; Ihre individuelle Crystal-Modelage",
+       "Zum Abschluss eine Modelliermaske, für Ihre Haut an diesem Tag angerührt. Wie Frischhaltefolie über einem frischen Gericht oder ein Deckel auf dem Topf. Ohne Deckel würden die eben aufgetragenen Wirkstoffe in die Luft entweichen. <b>Die Maske schließt sie ein, damit sie in die Haut einziehen statt verloren zu gehen.</b>"]
+    ],
+    beliefH:"Unsere Überzeugung: keine Massage, nur was Ihre Haut braucht",
+    beliefP:"<b>Wir machen keine Gesichtsmassage.</b> Unser Ziel ist nicht, die Haut zu reiben, sondern sie gesund zu machen.<br><br>Wo es hilft, arbeiten wir ausschließlich mit <b>sanfter Lymphpflege</b> &mdash; gerade so viel, dass die Lymphe gut fließt, und nur wenn der Hautzustand es verlangt.",
+    beliefList:[
+      "<b>Bei Akne oder Entzündung verteilen wir sie niemals über das ganze Gesicht</b>, weder mit Gerät noch mit den Händen.",
+      "<b>Ist die Haut so verschlossen, dass Wirkstoffe nicht hineinkommen, öffnen wir zuerst den Weg</b> &mdash; vor allem anderen.",
+      "<b>Wir geben nicht allen dieselbe Behandlung.</b> Haut, die nicht bereit ist, lässt sich nicht durch ein festes Programm drücken. Jede Sitzung richtet sich nach der Haut, die an diesem Tag vor uns liegt."
+    ],
+    law:"Es gibt auch einen rechtlichen Grund: In Korea ist Massage als Beruf gesetzlich zugelassenen sehbehinderten Fachkräften vorbehalten (Medizingesetz, Artikel 82). Ein Kosmetikstudio sollte das nicht anbieten &mdash; und wir tun es nicht.",
+    close:"Daran glauben wir. Vertrauen Sie uns den Weg an, und wir liefern echte Ergebnisse.",
+    short:"Kurz gesagt: öffnen, nähren, wecken, behandeln, versiegeln &mdash; und immer nur das, was Ihre Haut braucht.<br>Darum bewirken dieselben Wirkstoffe hier weit mehr als schnell zu Hause aufgetragen.",
+    hint:"↓ Bitte bis zum Ende scrollen",
+    btn:"Gelesen →"
+  },
+  it: {
+    h1:"Come funziona il tuo trattamento",
+    lead:"Ogni passaggio ha una ragione, e l'ordine conta.<br>È come costruire una casa: preparare il terreno, posare le fondamenta, alzare i muri, poi il tetto.",
+    steps:[
+      ["Aprire &mdash; fare strada",
+       "Dopo la detersione applichiamo un PHA delicato per ammorbidire lo strato più superficiale della pelle, un po' come un bagno caldo prima di uno scrub. La pelle è costruita come un labirinto fitto e tortuoso. <b>Ammorbidirla per prima cosa apre i passaggi, così tutto ciò che segue può davvero entrare.</b>"],
+      ["Nutrire &mdash; la maschera idratante",
+       "Segue una maschera gel idratante di 15-20 minuti. <b>È il passaggio più importante.</b> Immagina di chiedere a qualcuno di lavorare dopo giorni senza mangiare: si presenta, ma non combina molto. La pelle disidratata è uguale: anche i migliori ingredienti vanno sprecati. Per questo le diamo prima acqua."],
+      ["Risvegliare &mdash; luce LED rossa",
+       "Mentre la maschera agisce usiamo la luce LED rossa. Manda un segnale nella pelle, quasi come un codice morse, che dice alle cellule: <b>&laquo;&nbsp;È ora di lavorare, è ora di riparare.&nbsp;&raquo;</b> La luce rossa è tra i metodi non invasivi più delicati oggi disponibili. Nulla viene tagliato, esfoliato o riscaldato, non c'è tempo di recupero, eppure aiuta la pelle nel suo lavoro di rigenerazione. Studi clinici hanno mostrato risultati promettenti su collagene e riparazione cutanea, ed è lo stesso principio usato negli studi dermatologici."],
+      ["Trattare &mdash; i principi attivi",
+       "Solo ora applichiamo i prodotti che leniscono, rassodano o illuminano. Dai buoni attrezzi a chi ha fame e non succede nulla; dalli a chi è sazio e sveglio e il lavoro si fa. <b>Lo stesso prodotto funziona molto meglio su una pelle aperta, nutrita e risvegliata.</b>"],
+      ["Sigillare &mdash; la tua maschera modellante cristallo",
+       "Chiudiamo con una maschera modellante, preparata per la tua pelle di oggi. Pensa alla pellicola su un piatto appena fatto, o al coperchio su una pentola. Senza coperchio i buoni ingredienti appena applicati evaporerebbero. <b>La maschera li sigilla, così vengono assorbiti invece di andare persi.</b>"]
+    ],
+    beliefH:"Ciò in cui crediamo: niente massaggio, solo ciò di cui la tua pelle ha bisogno",
+    beliefP:"<b>Non facciamo massaggi al viso.</b> Il nostro scopo non è sfregare la pelle, ma renderla sana.<br><br>Quando serve usiamo solo un <b>drenaggio linfatico delicato</b>, quanto basta perché la linfa scorra, e solo se le condizioni della tua pelle lo richiedono.",
+    beliefList:[
+      "<b>Se hai acne o infiammazione, non la distribuiremo mai su tutto il viso</b>, né con un apparecchio né con le mani.",
+      "<b>Se la pelle è così chiusa che gli attivi non entrano, apriamo prima la strada</b>, prima di ogni altra cosa.",
+      "<b>Non facciamo lo stesso trattamento a tutti.</b> Una pelle non pronta non può essere forzata in un protocollo fisso. Ogni seduta è costruita sulla pelle che abbiamo davanti quel giorno."
+    ],
+    law:"C'è anche una ragione legale: in Corea il massaggio è una professione riservata per legge a operatori abilitati con disabilità visiva (Legge sui servizi medici, articolo 82). Non è qualcosa che uno studio di cura della pelle debba offrire, e noi non lo offriamo.",
+    close:"È questo in cui crediamo. Affidati al percorso e ti daremo risultati veri.",
+    short:"In breve: aprire, nutrire, risvegliare, trattare, sigillare &mdash; e soltanto ciò di cui la tua pelle ha bisogno.<br>Ecco perché gli stessi ingredienti fanno molto di più qui che applicati in fretta a casa.",
+    hint:"↓ Scorri fino alla fine",
+    btn:"Ho letto →"
+  },
+  es: {
+    h1:"Cómo funciona tu tratamiento",
+    lead:"Cada paso tiene una razón, y el orden importa.<br>Es como construir una casa: preparar el terreno, poner los cimientos, levantar los muros y después el tejado.",
+    steps:[
+      ["Abrir &mdash; despejar el camino",
+       "Tras la limpieza aplicamos un PHA suave para ablandar la capa más externa de la piel, algo parecido a un baño caliente antes de un exfoliante. Tu piel está construida como un laberinto cerrado y sinuoso. <b>Ablandarla primero abre los caminos, para que todo lo que viene después pueda entrar de verdad.</b>"],
+      ["Alimentar &mdash; la mascarilla de hidratación",
+       "Después viene una mascarilla gel hidratante de 15 a 20 minutos. <b>Es el paso más importante.</b> Imagina pedirle a alguien que trabaje tras días sin comer: aparece, pero no puede hacer gran cosa. Con la piel deshidratada pasa igual: hasta los mejores ingredientes se desperdician. Por eso primero le damos agua."],
+      ["Despertar &mdash; luz LED roja",
+       "Mientras la mascarilla actúa usamos luz LED roja. Envía una señal al interior de la piel, casi como código morse, diciéndoles a las células: <b>&laquo;&nbsp;Es hora de trabajar, hora de reparar.&nbsp;&raquo;</b> La luz roja es uno de los métodos no invasivos más suaves que existen hoy. No se corta, ni se pela, ni se calienta nada, y no hay tiempo de recuperación; aun así ayuda a la piel en su propio trabajo de regeneración. Los estudios clínicos muestran resultados prometedores en colágeno y reparación cutánea, y las clínicas dermatológicas usan el mismo principio."],
+      ["Tratar &mdash; los activos",
+       "Solo ahora aplicamos los productos que calman, reafirman o iluminan. Dale buenas herramientas a alguien hambriento y no pasa nada; dáselas a alguien bien alimentado y despierto y el trabajo sale. <b>El mismo producto funciona mucho mejor sobre una piel abierta, alimentada y despierta.</b>"],
+      ["Sellar &mdash; tu mascarilla modeladora de cristal",
+       "Terminamos con una mascarilla modeladora, preparada para tu piel de ese día. Piensa en film transparente sobre un plato recién hecho, o en la tapa de una olla. Sin tapa, los buenos ingredientes que acabamos de aplicar se evaporarían. <b>La mascarilla los sella, para que se absorban en lugar de perderse.</b>"]
+    ],
+    beliefH:"En lo que creemos: sin masaje, solo lo que tu piel necesita",
+    beliefP:"<b>No hacemos masaje facial.</b> Nuestro objetivo no es frotar la piel, sino que esté sana.<br><br>Cuando ayuda, usamos únicamente <b>drenaje linfático suave</b>, lo justo para que la linfa fluya, y solo si el estado de tu piel lo pide.",
+    beliefList:[
+      "<b>Si tienes acné o inflamación, nunca lo extenderemos por toda la cara</b>, ni con aparato ni con las manos.",
+      "<b>Si la piel está tan cerrada que los activos no entran, abrimos el camino primero</b>, antes que nada.",
+      "<b>No damos el mismo tratamiento a todo el mundo.</b> Una piel que no está lista no se puede empujar por un protocolo fijo. Cada sesión se construye alrededor de la piel que tenemos delante ese día."
+    ],
+    law:"También hay un motivo legal: en Corea el masaje es una profesión reservada por ley a profesionales acreditados con discapacidad visual (Ley de Servicios Médicos, artículo 82). No es algo que un estudio de cuidado de la piel deba ofrecer, y no lo ofrecemos.",
+    close:"Esto es lo que creemos. Confía en el proceso y te daremos resultados reales.",
+    short:"En resumen: abrir, alimentar, despertar, tratar, sellar &mdash; y solo lo que tu piel necesita.<br>Por eso los mismos ingredientes hacen mucho más aquí que aplicados deprisa en casa.",
+    hint:"↓ Desplázate hasta el final",
+    btn:"Lo he leído →"
+  },
+  ar: {
+    h1:"كيف تسير جلستك",
+    lead:"لكل خطوة سبب، والترتيب مهم.<br>الأمر أشبه ببناء بيت: تهيئة الأرض، ثم الأساس، ثم الجدران، وأخيرًا السقف.",
+    steps:[
+      ["الفتح &mdash; تمهيد الطريق",
+       "بعد التنظيف نضع حمض PHA لطيفًا لتليين الطبقة الخارجية من البشرة، أشبه بحمّام دافئ قبل التقشير. بشرتك مبنية كمتاهة ضيقة ومتعرجة. <b>تليينها أولًا يفتح المسارات، فيستطيع كل ما يليها أن يدخل فعلًا.</b>"],
+      ["التغذية &mdash; قناع الترطيب",
+       "ثم قناع جيلي مرطب لمدة 15 إلى 20 دقيقة. <b>هذه أهم خطوة.</b> تخيّل أن تطلب من شخص أن يعمل بعد أيام بلا طعام؛ سيحضر لكنه لن يستطيع فعل الكثير. البشرة الجافة كذلك: حتى أفضل المكونات تضيع عليها. لذلك نسقيها الماء أولًا."],
+      ["الإيقاظ &mdash; الضوء الأحمر LED",
+       "بينما يعمل القناع نستخدم الضوء الأحمر LED. يرسل إشارة إلى داخل البشرة، أشبه بشيفرة مورس، يقول للخلايا: <b>«حان وقت العمل، حان وقت الإصلاح.»</b> الضوء الأحمر من ألطف الوسائل غير الجراحية المتاحة اليوم. لا قطع ولا تقشير ولا حرارة، ولا فترة نقاهة، ومع ذلك يساعد البشرة على القيام بعمل التجدد بنفسها. أظهرت الدراسات السريرية نتائج واعدة للكولاجين وإصلاح البشرة، ولهذا تستخدم عيادات الجلدية المبدأ نفسه."],
+      ["المعالجة &mdash; المكونات الفعالة",
+       "الآن فقط نضع المنتجات التي تهدئ أو تشدّ أو توحّد اللون. أعطِ أدوات جيدة لشخص جائع فلن يحدث شيء؛ أعطها لشخص شبعان ومستيقظ فينجز العمل. <b>المنتج نفسه يعمل أفضل بكثير على بشرة فُتحت وغُذّيت وأُيقظت.</b>"],
+      ["الإغلاق &mdash; قناع التشكيل الكريستالي الخاص بك",
+       "ننهي بقناع تشكيل يُمزج لبشرتك في ذلك اليوم. تخيّله كغلاف بلاستيكي فوق طبق طازج، أو غطاء على قدر. بدون غطاء ستتبخر المكونات الجيدة التي وضعناها للتو. <b>القناع يحبسها، فتُمتص داخل بشرتك بدل أن تضيع.</b>"]
+    ],
+    beliefH:"قناعتنا: لا تدليك، بل ما تحتاجه بشرتك فقط",
+    beliefP:"<b>نحن لا نقدّم تدليك الوجه.</b> هدفنا ليس فرك البشرة بل جعلها صحية.<br><br>وعند الحاجة نستخدم <b>عناية لمفاوية لطيفة</b> فقط، بالقدر الذي يبقي تدفق اللمف سلسًا، وفقط إذا كانت حالة بشرتك تستدعي ذلك.",
+    beliefList:[
+      "<b>إذا كان لديك حب شباب أو التهاب، فلن ننشره على كامل الوجه</b> لا بجهاز ولا بالأيدي.",
+      "<b>إذا كانت البشرة مسدودة بحيث لا تدخل المكونات الفعالة، نفتح الطريق أولًا</b> قبل أي شيء آخر.",
+      "<b>لا نقدّم العناية نفسها للجميع.</b> البشرة غير الجاهزة لا يمكن دفعها في برنامج ثابت. كل جلسة تُبنى حول البشرة التي أمامنا في ذلك اليوم."
+    ],
+    law:"هناك جانب قانوني أيضًا: في كوريا، التدليك مهنة محفوظة بالقانون للممارسين المرخّصين من ذوي الإعاقة البصرية (قانون الخدمات الطبية، المادة 82). ليس مما ينبغي لاستوديو العناية بالبشرة أن يقدّمه، ونحن لا نقدّمه.",
+    close:"هذا ما نؤمن به. ثق بالمسار معنا، وسنمنحك نتائج حقيقية.",
+    short:"باختصار: نفتح، نغذّي، نوقظ، نعالج، نغلق &mdash; وما تحتاجه بشرتك فقط.<br>لهذا تفعل المكونات نفسها هنا أكثر بكثير مما تفعله عند وضعها سريعًا في المنزل.",
+    hint:"↓ من فضلك مرّر حتى النهاية",
+    btn:"قرأتُ ذلك →"
+  },
+  he: {
+    h1:"איך הטיפול שלך עובד",
+    lead:"לכל שלב יש סיבה, והסדר חשוב.<br>זה כמו בניית בית: מכינים את הקרקע, יוצקים יסודות, מקימים קירות, ולבסוף הגג.",
+    steps:[
+      ["לפתוח &mdash; לפלס את הדרך",
+       "אחרי הניקוי אנחנו מורחים PHA עדין כדי לרכך את השכבה החיצונית ביותר של העור, קצת כמו אמבטיה חמה לפני פילינג. העור בנוי כמו מבוך צפוף ומתפתל. <b>ריכוך תחילה פותח את השבילים, כך שכל מה שבא אחר כך באמת נכנס פנימה.</b>"],
+      ["להזין &mdash; מסכת הלחות",
+       "אחר כך מסכת ג'לי לחות למשך 15 עד 20 דקות. <b>זה השלב החשוב ביותר.</b> תארו לעצמכם לבקש ממישהו לעבוד אחרי ימים בלי אוכל. הוא יגיע, אבל לא יוכל לעשות הרבה. עור יבש זהה: אפילו הרכיבים הטובים ביותר יורדים לטמיון. לכן קודם כול אנחנו נותנים לו מים."],
+      ["להעיר &mdash; אור LED אדום",
+       "בזמן שהמסכה פועלת אנחנו משתמשים באור LED אדום. הוא שולח אות אל תוך העור, כמעט כמו קוד מורס, ואומר לתאים: <b>«הגיע הזמן לעבוד, הזמן לתקן.»</b> אור אדום הוא מהשיטות הלא-פולשניות העדינות ביותר הקיימות כיום. שום דבר לא נחתך, לא נקלף ולא מחומם, ואין זמן החלמה, ובכל זאת הוא מסייע לעור לבצע את עבודת ההתחדשות שלו. מחקרים קליניים הראו תוצאות מבטיחות לקולגן ולתיקון העור, ומרפאות עור משתמשות באותו עיקרון."],
+      ["לטפל &mdash; הרכיבים הפעילים",
+       "רק עכשיו אנחנו מורחים את המוצרים המרגיעים, המחזקים או המבהירים. תנו כלים טובים למי שרעב ולא יקרה דבר; תנו אותם למי ששבע וער והעבודה תיעשה. <b>אותו מוצר עצמו עובד הרבה יותר טוב על עור שנפתח, הוזן והתעורר.</b>"],
+      ["לאטום &mdash; מסכת המודלינג הקריסטל האישית שלך",
+       "מסיימים במסכת מודלינג, שנמהלת לעור שלך באותו יום. חשבו על ניילון נצמד מעל מנה טרייה, או מכסה על סיר. בלי מכסה הרכיבים הטובים שהרגע מרחנו היו מתאדים לאוויר. <b>המסכה אוטמת אותם, כך שהם נספגים בעור במקום ללכת לאיבוד.</b>"]
+    ],
+    beliefH:"האמונה שלנו: לא עיסוי, רק מה שהעור שלך צריך",
+    beliefP:"<b>אנחנו לא עושים עיסוי פנים.</b> המטרה שלנו אינה לשפשף את העור אלא להפוך אותו לבריא.<br><br>כשזה עוזר, אנחנו עושים רק <b>ניקוז לימפתי עדין</b>, בדיוק כמה שצריך כדי שהלימפה תזרום, ורק כשמצב העור דורש זאת.",
+    beliefList:[
+      "<b>אם יש לך אקנה או דלקת, לעולם לא נפזר אותה על כל הפנים</b>, לא במכשיר ולא בידיים.",
+      "<b>אם העור חסום כך שחומרים פעילים לא נכנסים, אנחנו פותחים את הדרך קודם</b>, לפני כל דבר אחר.",
+      "<b>אנחנו לא נותנים לכולם את אותו טיפול.</b> עור שאינו מוכן לעבוד אי אפשר לדחוף לתוך פרוטוקול קבוע. כל מפגש נבנה סביב העור שלפנינו באותו יום."
+    ],
+    law:"יש גם צד חוקי: בקוריאה, עיסוי כמקצוע שמור בחוק למטפלים מורשים עם לקות ראייה (חוק שירותי הרפואה, סעיף 82). זה אינו דבר שסטודיו לטיפוח עור אמור להציע, ואנחנו לא מציעים אותו.",
+    close:"זה מה שאנחנו מאמינים בו. תנו בנו אמון בתהליך, ונביא לכם תוצאות אמיתיות.",
+    short:"בקצרה: לפתוח, להזין, להעיר, לטפל, לאטום &mdash; ורק מה שהעור שלך צריך.<br>לכן אותם רכיבים עושים כאן הרבה יותר מאשר כשמורחים אותם במהירות בבית.",
+    hint:"↓ אנא גללו עד הסוף",
+    btn:"קראתי →"
+  }};
 
 function careTxt(){ return CARE_TXT[selfLang] || CARE_TXT.en; }
 
@@ -1712,17 +1958,37 @@ function showSelfComplete(){
   saveSelfCheck();
   renderCareScreen();
   document.getElementById("self-step-care").classList.remove("hidden");
+  /* 화면에 보인 뒤에 스크롤을 맨 위로 — 숨겨진 상태에서는 scrollTop 지정이 먹지 않습니다 */
+  const cbox = document.getElementById("care-scroll");
+  cbox.scrollTop = 0;
+  if (cbox.onscroll) setTimeout(cbox.onscroll, 150);
 }
 
 async function saveSelfCheck(){
   const lng = t();
   const statusEl = document.getElementById("self-save-status");
+
+  /* ★ 보내는 중에 또 누르면 같은 기록이 두 번 들어갑니다 — 무시합니다 */
+  if (netBusy){
+    statusEl.innerHTML = '<span style="color:var(--muted)">' + lng.saving + '</span>';
+    return;
+  }
+  /* ★ 이미 저장된 기록이면 다시 보내지 않습니다 */
+  if (selfSavedCaseId && selfSavedRowNumber){
+    statusEl.innerHTML = '<span style="color:var(--success)">&#10003; ' + lng.saved + ' &middot; ' + selfSavedCaseId + '</span>';
+    return;
+  }
+
   statusEl.textContent = lng.saving;
   statusEl.style.color = "var(--muted)";
 
   const now = new Date();
   const dateStr = now.getFullYear() + String(now.getMonth()+1).padStart(2,"0") + String(now.getDate()).padStart(2,"0");
-  selfSavedCaseId = "CR-" + dateStr + "-" + String(Date.now()).slice(-4);
+  /* ★ 번호는 이 손님에게 한 번만 발급합니다. 다시 시도해도 같은 번호라서 중복을 걸러낼 수 있습니다 */
+  if (!selfPendingCaseId){
+    selfPendingCaseId = "CR-" + dateStr + "-" + String(Date.now()).slice(-4);
+  }
+  selfSavedCaseId = selfPendingCaseId;
 
   document.getElementById("self-case-id-display").textContent = selfSavedCaseId;
   document.getElementById("self-case-id-name").textContent = (selfData.name || "") + (selfData.email ? " · " + selfData.email : "");
@@ -1783,12 +2049,13 @@ async function saveSelfCheck(){
   draftSave(payload);
   netBusy = true;
   try{
-    const result = await callSheet(payload);
+    const result = await callSheet(payload, { landed: () => sheetFindCase(selfPendingCaseId) });
     selfSavedRowNumber = result.row;
     draftClear();
     statusEl.innerHTML = `<span style="color:var(--success)">✓ ${lng.saved} · ${selfSavedCaseId}</span>`;
   }catch(err){
     statusEl.innerHTML = `<span style="color:var(--danger)">⚠ ${lng.saveFailed}<br>${netReason(err)}<br><small style="opacity:.8">내용은 이 태블릿에 남아 있습니다 — 다시 시도해도 되고, 앱을 다시 열면 자동으로 보냅니다.</small></span><br><button onclick="saveSelfCheck()" style="margin-top:8px;padding:8px 20px;border:1px solid var(--danger);background:transparent;color:var(--danger);border-radius:3px;cursor:pointer;font-family:inherit;font-size:13px">↻ Retry · 다시 시도</button>`;
+    /* 번호(selfPendingCaseId)는 그대로 둡니다 — 다시 시도할 때 같은 번호를 써야 중복이 안 생깁니다 */
     selfSavedCaseId = null;
     selfSavedRowNumber = null;
     console.error(err);
@@ -1907,6 +2174,8 @@ function resetSelfCheck(){
   selfData = {name:"",email:"",age:"",gender:"",nationality:"",residence:"",skintype:null,concerns:[],goals:[],memo:"",program:"",source:""};
   selfSavedCaseId = null;
   selfSavedRowNumber = null;
+  selfPendingCaseId = null;
+  tpPendingCaseId = null;
   editMode = false;
   editRowNumber = null;
   editCaseId = null;
@@ -2278,6 +2547,17 @@ async function finalSave(){
   const btn=document.getElementById("final-save-btn");
   const status=document.getElementById("final-save-status");
 
+  /* ★ 보내는 중에 또 누르면 같은 기록이 두 번 들어갑니다 — 무시합니다 */
+  if (netBusy){
+    status.innerHTML='<span style="color:var(--muted)">전송 중입니다 — 잠시만 기다려 주세요</span>';
+    return;
+  }
+  /* ★ 이미 저장이 끝난 기록이면 다시 보내지 않습니다 */
+  if (lastSaveOk && !editMode){
+    status.innerHTML='<span style="color:var(--success)">✓ 이미 저장된 기록입니다</span>';
+    return;
+  }
+
   if(editMode && !editRowNumber){
     status.innerHTML='<span style="color:var(--danger)">⚠ 수정 대상 row를 확인할 수 없습니다. 검색에서 기록을 다시 불러와 주세요.</span>';
     return;
@@ -2287,7 +2567,11 @@ async function finalSave(){
   btn.disabled=true;
   status.textContent="구글 시트에 전송 중...";
 
-  const caseId = editMode ? editCaseId : ("CR-"+new Date().getFullYear()+String(new Date().getMonth()+1).padStart(2,"0")+String(new Date().getDate()).padStart(2,"0")+"-"+String(Date.now()).slice(-4));
+  /* ★ 새 기록 번호는 한 번만 발급합니다 — "다시 누르기"로 같은 내용이 여러 줄 들어가지 않게 */
+  if (!editMode && !tpPendingCaseId){
+    tpPendingCaseId = "CR-"+new Date().getFullYear()+String(new Date().getMonth()+1).padStart(2,"0")+String(new Date().getDate()).padStart(2,"0")+"-"+String(Date.now()).slice(-4);
+  }
+  const caseId = editMode ? editCaseId : tpPendingCaseId;
 
   const vFlat={};
   DATA.visualCats.forEach(cat=>{
@@ -2337,7 +2621,9 @@ async function finalSave(){
   netBusy = true;
 
   try{
-    const result = await callSheet(payload);
+    const result = await callSheet(payload, {
+      landed: () => (editMode ? null : sheetFindCase(caseId))
+    });
 
     if(result.status === "ok"){
       draftClear();
@@ -2364,6 +2650,7 @@ async function finalSave(){
 }
 
 function clearFormState(){
+  tpPendingCaseId = null;
   d={};
   multi={gender:null,age:null,clientSkintype:null,clientConcerns:[],clientGoals:[],
     tpSkintype:[],tpSkintype2:[],tpGoals:[],careTreatments:[],careReaction:[],careRevisit:null};

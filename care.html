@@ -80,6 +80,30 @@ textarea{resize:vertical;line-height:1.6;}
 .input-group label{display:block;font-size:11px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin-bottom:6px;}
 
 .opt-wrap{display:flex;flex-wrap:wrap;gap:7px;}
+/* ── 사용 제품 고르기 ───────────────────────────── */
+.prod-count{font-size:11px;font-weight:600;color:var(--section-care);
+  background:#F0F4F1;border-radius:999px;padding:2px 9px;margin-left:7px;vertical-align:middle;}
+.prod-row{display:flex;flex-wrap:wrap;gap:6px;}
+.prod-btn{padding:9px 12px;border:1px solid var(--border2);border-radius:2px;background:transparent;
+  cursor:pointer;font-family:inherit;transition:all .13s;text-align:left;line-height:1.25;
+  display:inline-flex;align-items:center;gap:6px;}
+.prod-btn .pnum{flex:0 0 18px;height:18px;border-radius:50%;background:var(--section-care);color:#fff;
+  font-size:10.5px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;}
+.prod-btn .pko{display:block;font-size:13px;color:var(--muted);}
+.prod-btn:hover{border-color:var(--accent2);}
+.prod-btn:hover .pko{color:var(--accent);}
+.prod-btn.on{border-color:var(--section-care);background:#4A7C5914;}
+.prod-btn.on .pko{color:var(--section-care);font-weight:700;}
+.prod-picked{margin:12px 0 10px;padding:11px 12px;background:#FAFAF8;border-radius:4px;
+  display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:42px;}
+.prod-tag{font-size:12px;padding:4px 10px 4px 6px;background:#fff;border:1px solid var(--border2);
+  border-radius:999px;color:var(--text);display:inline-flex;align-items:center;gap:5px;}
+.prod-tag b{min-width:16px;height:16px;border-radius:50%;background:#F0F4F1;color:var(--section-care);
+  font-size:10px;display:inline-flex;align-items:center;justify-content:center;}
+.prod-none{font-size:12px;color:var(--border2);}
+.prod-hint{font-size:11px;color:var(--muted);margin-top:7px;}
+.prod-clear{margin-left:auto;font-size:11px;color:var(--muted);background:none;border:none;
+  text-decoration:underline;cursor:pointer;font-family:inherit;padding:4px;}
 .opt-btn{padding:8px 16px;border:1px solid var(--border2);border-radius:2px;background:transparent;
   color:var(--muted);cursor:pointer;font-size:13px;font-family:inherit;transition:all 0.15s;}
 .opt-btn:hover{border-color:var(--accent2);color:var(--accent);}
@@ -596,14 +620,19 @@ textarea{resize:vertical;line-height:1.6;}
     <div class="sec-desc">이번 방문에서 진행한 시술과 사용 제품을 기록해 주세요</div>
   </div>
   <div class="card"><div class="card-title" style="color:var(--section-care)">시술 종류 (복수 선택)</div><div class="opt-wrap" id="care-treatments"></div></div>
-  <div class="card"><div class="card-title" style="color:var(--section-care)">사용 제품</div><textarea id="care-products" rows="3" placeholder="사용 제품 목록..."></textarea></div>
+  <div class="card">
+    <div class="card-title" style="color:var(--section-care)">사용 제품 <span id="prodCount" class="prod-count">0개</span></div>
+    <div id="prodPick"></div>
+    <div class="prod-picked" id="prodPicked"></div>
+    <textarea id="care-products" rows="2" placeholder="목록에 없는 제품은 여기에 적어주세요"></textarea>
+    <div class="prod-hint">쓴 차례대로 누르세요. 누른 순서가 그대로 기록에 남습니다.</div>
+  </div>
   <div class="card">
     <div class="input-row">
       <div class="input-group"><label>케어 총 시간 (분)</label><input type="number" id="care-duration" placeholder="60"></div>
       <div class="input-group"><label>고객 반응</label><div class="opt-wrap" id="care-reaction" style="margin-top:4px"></div></div>
     </div>
   </div>
-  <div class="card"><div class="card-title" style="color:var(--section-care)">홈케어 권장사항</div><textarea id="care-homecare" rows="3" placeholder="홈케어 권장사항..."></textarea></div>
   <div class="card">
     <div class="input-row">
       <div class="input-group"><label>다음 방문 권장 시기</label><div class="opt-wrap" id="care-revisit" style="margin-top:4px"></div></div>
@@ -1143,7 +1172,7 @@ const DATA = {
   tpSkintype: ["지성","건성","복합성","민감성","정상/중성","건성+민감","지성+민감","탈수성 지성"],
   tpSkintype2: ["장벽 손상","모공 확장","색소 침착","혈관 확장","여드름성","노화형"],
   tpGoals: ["촉촉하고 윤기 있는 피부","맑고 투명한 유리 피부","탄탄하고 탄력 있는 피부","모공이 작고 매끈한 피부","트러블 없이 깨끗한 피부","자연스럽고 건강한 피부","화장이 잘 받는 피부","홍조 없이 균일한 톤"],
-  careTreatments: ["기본 클렌징","딥클렌징","모공 케어","진정 케어","수분 집중","미백 케어","리프팅","LED 광선","고주파","초음파","갈바닉","필링","기타"],
+  careTreatments: ["시그니처","프리미엄","미백","리프팅","바디앤페이셜"],
   careReaction: ["긍정적 반응","민감 반응 없음","일부 발적","따가움 호소","즉각 진정","만족도 높음","재방문 의향"],
   careRevisit: ["1주 후","2주 후","3주 후","1개월 후","2개월 후"],
   visualCats: ["수분감","탄력","홍조","트러블","전반적 상태"],
@@ -2324,9 +2353,8 @@ function loadRecord(idx) {
   document.getElementById("tp-sebum").value = r.tp_sebum||"";
   document.getElementById("tp-sensitivity").value = r.tp_sensitivity||"";
   document.getElementById("tp-notes").value = r.tp_notes||"";
-  document.getElementById("care-products").value = r.care_products||"";
+  loadProducts(r.care_products);
   document.getElementById("care-duration").value = r.care_duration||"";
-  document.getElementById("care-homecare").value = r.care_homecare||"";
   document.getElementById("care-next").value = r.care_next||"";
   document.getElementById("care-summary").value = r.care_summary||"";
 
@@ -2366,6 +2394,116 @@ function buildRadio(cid, stateKey, options, colorClass){
     };
     el.appendChild(btn);
   });
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   사용 제품 — 쓰는 순서대로 한 줄로 늘어놓았습니다.
+   [한국어 이름, 영문 이름]  영문이 시트와 손님 메일에 들어갑니다.
+   제품이 바뀌거나 순서를 바꾸려면 이 목록만 고치시면 됩니다.
+   ═══════════════════════════════════════════════════════════ */
+const PRODUCTS = [
+  ["퓨리파잉 클렌저","Purifying Cleanser"],
+  ["엔자이미 딥 클렌저","Enzyme Deep Cleanser"],
+  ["밀키 클렌저","Milky Cleanser"],
+  ["PHA 소프트 필 15","PHA Soft Peel 15"],
+  ["수딩 마스크 (하이드로겔)","Soothing Mask (hydrogel)"],
+  ["엑소 클리니카 젤","Exo Clinica Gel"],
+  ["하이아줄렌 프로 에센스","Hyazulene Pro Essence"],
+  ["레스큐어 멀티비타민","Rescuer Multi Vitamin"],
+  ["레스큐어 하이드라 콤플렉스","Rescuer Hydra Complex"],
+  ["레스큐어 시카 포어","Rescuer Cica Pore"],
+  ["레스큐어 필라젠","Rescuer Filagen"],
+  ["레스큐어 마이크로바이옴 골드","Rescuer Microbiome Gold"],
+  ["아쥴렌 큐어 솔루션","Azulene Cure Solution"],
+  ["A.C 컨트롤 (에끌라두)","A.C Control (Eclado)"],
+  ["AC 컨트롤 (리라신)","AC Control (Reracine)"],
+  ["NK-CX 코어","NK-CX Core"],
+  ["알파 하이드로 부스터 겔","Alpha Hydro Booster Gel"],
+  ["콜라게프 프로 에센스","Collagef Pro Essence"],
+  ["핑크알엔 프로 에센스","Pinkrn Pro Essence"],
+  ["V-피린 세럼 & 밤","V-Filine Serum & Balm"],
+  ["AC 스팟 솔루션","AC Spot Solution"],
+  ["리바이털라이징 엘라스틴 & 콜라겐","Revitalizing Elastin & Collagen Serum"],
+  ["샤이닝 V-C 세럼","Shining V-C Serum"],
+  ["액티베이션 크림","Activation Cream"],
+  ["레스토레이션 캐비어 크림","Restoration Caviar Cream"],
+  ["시조피린 셀룰러 메스 크림","Sizopirin Cellular Mess Cream"],
+  ["하이플러스 밤솜 크림","Hy+Balsam Cream"],
+  ["셀빅스 다이나믹","Celvix Pro — Dynamic"],
+  ["셀빅스 볼륨 플러스","Celvix Pro — Volume Plus"],
+  ["셀빅스 글로우","Celvix Pro — Glow"],
+  ["아이오닉 데일리 마스크","Anionic Daily Mask"],
+  ["아쥴렌 크리스탈 마스크","Azulene Crystal Mask"],
+  ["데미지 컨트롤 모델링 마스크","Damage Control Modeling Mask"],
+  ["콜라멜트 마스크","Collamelt Mask"],
+  ["알파바이옴 브라이트닝 마스크","Alphabiome Brightening Mask"],
+  ["바이탈 리프트 팩 골드","Vital Lift Pack Gold"],
+  ["골드 에센셜 마스크","Gold Essential Mask"],
+  ["레스큐어 시카 밤","Rescuer Cica Balm"],
+  ["셀 메모리 크림","Cell Memory Cream"],
+  ["리차지 부스터 밤","Recharge Booster Balm"],
+  ["UV 썬크림","UV Sun Cream"]
+];
+/* 고른 순서를 그대로 기억합니다 — 누른 차례가 곧 시술 차례입니다 */
+let pickedProducts = [];
+
+function buildProductPicker(){
+  const el = document.getElementById("prodPick"); if(!el) return;
+  el.innerHTML = '<div class="prod-row">' + PRODUCTS.map(function(it, i){
+    const ko = it[0], en = it[1];
+    const n = pickedProducts.indexOf(en);
+    return '<button type="button" class="prod-btn' + (n>-1?' on':'') + '" ' +
+           'data-en="' + en.replace(/"/g,'&quot;') + '" ' +
+           'onclick="toggleProduct(' + i + ',this)">' +
+           (n>-1 ? '<span class="pnum">' + (n+1) + '</span>' : '') +
+           '<span class="pko">' + ko + '</span></button>';
+  }).join('') + '</div>';
+  paintPicked();
+}
+window.toggleProduct = function(i, btn){
+  const en = PRODUCTS[i][1];
+  const n = pickedProducts.indexOf(en);
+  if(n > -1) pickedProducts.splice(n,1); else pickedProducts.push(en);
+  buildProductPicker();   /* 번호가 밀리므로 전부 다시 그립니다 */
+};
+window.clearProducts = function(){ pickedProducts = []; buildProductPicker(); };
+function koOf(en){
+  for(const it of PRODUCTS){ if(it[1]===en) return it[0]; }
+  return en;
+}
+function paintPicked(){
+  const box = document.getElementById("prodPicked");
+  const cnt = document.getElementById("prodCount");
+  if(cnt) cnt.textContent = pickedProducts.length + "개";
+  if(!box) return;
+  if(!pickedProducts.length){
+    box.innerHTML = '<span class="prod-none">누른 차례대로 여기에 쌓입니다</span>';
+    return;
+  }
+  box.innerHTML = pickedProducts.map(function(en,i){
+    return '<span class="prod-tag"><b>' + (i+1) + '</b>' + koOf(en) + '</span>';
+  }).join('') + '<button type="button" class="prod-clear" onclick="clearProducts()">전부 지우기</button>';
+}
+/* 저장할 때 — 고른 제품(순서대로) + 직접 적은 것 */
+function productsValue(){
+  const extra = (document.getElementById("care-products").value||"").trim();
+  const list = pickedProducts.slice();
+  if(extra) list.push(extra);
+  return list.join(", ");
+}
+/* 기록을 다시 불러올 때 — 저장된 순서 그대로 켭니다 */
+function loadProducts(saved){
+  pickedProducts = [];
+  const rest = [];
+  String(saved||"").split(",").map(function(x){ return x.trim(); }).filter(Boolean).forEach(function(part){
+    let hit = null;
+    for(const it of PRODUCTS){ if(it[1]===part) hit = it[1]; }
+    if(hit){ if(pickedProducts.indexOf(hit)<0) pickedProducts.push(hit); }
+    else rest.push(part);
+  });
+  document.getElementById("care-products").value = rest.join(", ");
+  buildProductPicker();
 }
 
 function buildMulti(cid, stateKey, options, colorClass){
@@ -2433,6 +2571,7 @@ function initAll(){
   buildMulti("tp-skintype2","tpSkintype2",DATA.tpSkintype2,"sel-therapist");
   buildMulti("tp-goals","tpGoals",DATA.tpGoals,"sel-therapist");
   buildMulti("care-treatments","careTreatments",DATA.careTreatments,"sel-care");
+  buildProductPicker();
   buildMulti("care-reaction","careReaction",DATA.careReaction,"sel-care");
   buildRadio("care-revisit","careRevisit",DATA.careRevisit,"sel-care");
   buildVisualScores();
@@ -2604,10 +2743,10 @@ async function finalSave(){
     tp_notes: document.getElementById("tp-notes").value,
     ...vFlat,
     care_treatments: multi.careTreatments.join("|"),
-    care_products: document.getElementById("care-products").value,
+    care_products: productsValue(),
     care_duration: document.getElementById("care-duration").value,
     care_reaction: multi.careReaction.join("|"),
-    care_homecare: document.getElementById("care-homecare").value,
+    care_homecare: "",   /* 홈케어는 전문가팁 메일에서 따로 씁니다 — 앱에서는 받지 않습니다 */
     care_revisit: multi.careRevisit||"",
     care_next: document.getElementById("care-next").value,
     care_summary: document.getElementById("care-summary").value,
@@ -2654,10 +2793,11 @@ function clearFormState(){
   d={};
   multi={gender:null,age:null,clientSkintype:null,clientConcerns:[],clientGoals:[],
     tpSkintype:[],tpSkintype2:[],tpGoals:[],careTreatments:[],careReaction:[],careRevisit:null};
+  pickedProducts = [];
   visualScores={};
   ["client-name","client-email","therapist-name","nationality","client-memo",
    "tp-moisture","tp-sebum","tp-sensitivity","tp-goal-custom","tp-notes",
-   "care-products","care-duration","care-next","care-homecare","care-summary"
+   "care-products","care-duration","care-next","care-summary"
   ].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
   document.getElementById("visit-count").value="";
   document.getElementById("edit-banner-0").classList.remove("show");

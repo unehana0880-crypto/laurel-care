@@ -102,6 +102,26 @@ textarea{resize:vertical;line-height:1.6;}
   font-size:10px;display:inline-flex;align-items:center;justify-content:center;}
 .prod-none{font-size:12px;color:var(--border2);}
 .prod-hint{font-size:11px;color:var(--muted);margin-top:7px;}
+.vr-row{display:grid;grid-template-columns:88px 1fr;gap:10px;align-items:start;
+  padding:9px 0;border-bottom:1px solid #F2EFE9;}
+.vr-row:last-child{border-bottom:none;}
+.vr-lbl{font-size:12.5px;color:var(--text);padding-top:7px;line-height:1.3;}
+.vr-hint{display:block;font-size:10px;color:var(--muted2);margin-top:2px;line-height:1.35;}
+.vr-opts{display:flex;flex-wrap:wrap;gap:5px;}
+.vr-btn{padding:7px 11px;border:1px solid var(--border2);border-radius:2px;background:transparent;
+  color:var(--muted);cursor:pointer;font-size:12.5px;font-family:inherit;transition:all .13s;}
+.vr-btn:hover{border-color:var(--accent2);color:var(--accent);}
+.vr-btn.on{border-color:var(--section-therapist);background:#8B6F4714;
+  color:var(--section-therapist);font-weight:700;}
+.acne-note{margin-top:7px;font-size:11.5px;line-height:1.55;color:var(--muted);
+  background:#FAFAF8;border-left:2px solid var(--border2);padding:7px 10px;border-radius:0 3px 3px 0;}
+.acne-note b{color:var(--text);margin-right:4px;}
+.acne-note.lv1{background:#FFFBEF;border-left-color:#C9A227;}
+.acne-note.lv2{background:#FBF2F2;border-left-color:#B85C5C;}
+.acne-warn{display:block;margin-top:4px;font-weight:700;color:#8A4A4A;}
+.acne-note.lv1 .acne-warn{color:#8A6D1F;}
+.opt-tag{font-size:9.5px;letter-spacing:.05em;color:var(--muted2);border:1px solid var(--border2);
+  border-radius:999px;padding:1px 7px;margin-left:6px;vertical-align:middle;}
 .prod-clear{margin-left:auto;font-size:11px;color:var(--muted);background:none;border:none;
   text-decoration:underline;cursor:pointer;font-family:inherit;padding:4px;}
 .opt-btn{padding:8px 16px;border:1px solid var(--border2);border-radius:2px;background:transparent;
@@ -556,6 +576,11 @@ textarea{resize:vertical;line-height:1.6;}
       </div>
     </div>
     <div class="input-group">
+      <label>같이 온 일행</label>
+      <div class="opt-wrap" id="comp-wrap" style="margin-top:4px"></div>
+      <input type="text" id="comp-who" placeholder="일행 이름 (예: Anaïs · 어머니)" style="margin-top:8px">
+    </div>
+    <div class="input-group">
       <label>국적</label>
       <input type="text" id="nationality" placeholder="Korean / Japanese / etc.">
     </div>
@@ -583,9 +608,13 @@ textarea{resize:vertical;line-height:1.6;}
   <div class="card">
     <div class="card-title" style="color:var(--section-therapist)">실제 피부 타입 <span style="color:var(--danger)">*</span></div>
     <div class="opt-wrap" id="tp-skintype"></div>
-    <div style="margin-top:10px"><div class="opt-wrap" id="tp-skintype2"></div></div>
   </div>
   <div class="card">
+    <div class="card-title" style="color:var(--section-therapist)">눈으로 본 것 <span class="opt-tag">누르기만</span></div>
+    <div id="vr-wrap"></div>
+    <div class="prod-hint">원장님은 얼굴을 못 봅니다. 여기 눌러둔 것만 보고 케어를 설계합니다.</div>
+  </div>
+  <div class="card" style="display:none">
     <div class="card-title" style="color:var(--section-therapist)">피부 측정값 (기기)</div>
     <div class="measure-grid">
       <div class="measure-box"><div class="measure-label" style="color:var(--teal)">수분도</div><input type="number" class="measure-input" id="tp-moisture" placeholder="—" min="0" max="100" style="color:var(--teal)"><div class="measure-unit">%</div></div>
@@ -594,22 +623,9 @@ textarea{resize:vertical;line-height:1.6;}
     </div>
   </div>
   <div class="card">
-    <div class="card-title" style="color:var(--section-therapist)">육안 상태 점수 — 케어 전 → 후</div>
-    <div style="display:flex;gap:20px;margin-bottom:12px;font-size:11px;color:var(--muted);letter-spacing:1px;">
-      <span style="margin-left:128px">케어 전</span>
-      <span style="margin-left:60px">케어 후</span>
-    </div>
+    <div class="card-title" style="color:var(--section-therapist)">케어 후 상태 점수</div>
     <div id="visual-scores"></div>
     <div style="margin-top:8px;font-size:11px;color:var(--muted2);font-style:italic">* 1점(매우 나쁨) — 5점(매우 좋음)</div>
-  </div>
-  <div class="card">
-    <div class="card-title" style="color:var(--section-therapist)">고객 추구미 (복수 선택)</div>
-    <div class="goal-wrap" id="tp-goals"></div>
-    <div style="margin-top:14px"><input type="text" id="tp-goal-custom" placeholder="직접 입력"></div>
-  </div>
-  <div class="card">
-    <div class="card-title" style="color:var(--section-therapist)">고객 특이사항</div>
-    <textarea id="tp-notes" rows="4" placeholder="예: 왼쪽 볼 모세혈관 확장 심함..."></textarea>
   </div>
 </div>
 
@@ -628,10 +644,13 @@ textarea{resize:vertical;line-height:1.6;}
     <div class="prod-hint">쓴 차례대로 누르세요. 누른 순서가 그대로 기록에 남습니다.</div>
   </div>
   <div class="card">
-    <div class="input-row">
-      <div class="input-group"><label>케어 총 시간 (분)</label><input type="number" id="care-duration" placeholder="60"></div>
-      <div class="input-group"><label>고객 반응</label><div class="opt-wrap" id="care-reaction" style="margin-top:4px"></div></div>
-    </div>
+    <div class="card-title" style="color:var(--section-care)">고객 반응</div>
+    <div class="opt-wrap" id="care-reaction"></div>
+  </div>
+  <div class="card">
+    <div class="card-title" style="color:var(--section-care)">고객 특이사항 <span class="opt-tag">선택</span></div>
+    <textarea id="tp-notes" rows="3" placeholder="예: 양 볼과 이마에 홍조 / 폐쇄공포증이 있어 모델링 팩 대신 시트 마스크"></textarea>
+    <div class="prod-hint">적어두시면 전문가팁 메일이 그 손님 이야기로 바뀝니다. 없으면 비워두세요.</div>
   </div>
   <div class="card">
     <div class="input-row">
@@ -2342,19 +2361,29 @@ function loadRecord(idx) {
   multi.clientConcerns = (r.client_concerns||"").split("|").filter(Boolean);
   multi.clientGoals = (r.client_goals||"").split("|").filter(Boolean);
   multi.tpSkintype = (r.tp_skintype||"").split("|").filter(Boolean);
-  multi.tpSkintype2 = (r.tp_skintype_detail||"").split("|").filter(Boolean);
-  multi.tpGoals = (r.tp_goals||"").split("|").filter(Boolean);
+  vrLoad(r.tp_skintype_detail);
   multi.careTreatments = (r.care_treatments||"").split("|").filter(Boolean);
   multi.careReaction = (r.care_reaction||"").split("|").filter(Boolean);
   multi.careRevisit = r.care_revisit||null;
 
-  document.getElementById("client-memo").value = r.client_memo||"";
+  (function(){
+    const raw = String(r.client_memo||"");
+    const m = raw.match(/\[일행:\s*([^\]]+)\]/);
+    compPick = null;
+    document.getElementById("comp-who").value = "";
+    if(m){
+      const parts = m[1].trim().split(/\s+/);
+      if(COMPANION.indexOf(parts[0]) > -1){ compPick = parts[0]; parts.shift(); }
+      document.getElementById("comp-who").value = parts.join(" ");
+    }
+    buildCompanion();
+    document.getElementById("client-memo").value = raw.replace(/\n?\[일행:[^\]]*\]/,"");
+  })();
   document.getElementById("tp-moisture").value = r.tp_moisture||"";
   document.getElementById("tp-sebum").value = r.tp_sebum||"";
   document.getElementById("tp-sensitivity").value = r.tp_sensitivity||"";
   document.getElementById("tp-notes").value = r.tp_notes||"";
   loadProducts(r.care_products);
-  document.getElementById("care-duration").value = r.care_duration||"";
   document.getElementById("care-next").value = r.care_next||"";
   document.getElementById("care-summary").value = r.care_summary||"";
 
@@ -2525,6 +2554,162 @@ function buildMulti(cid, stateKey, options, colorClass){
   });
 }
 
+
+/* ═══════════════════════════════════════════════════════════
+   눈으로 본 것 — 적지 말고 누르게 합니다.
+   「백인」 한 단어 대신 톤·머리색·눈색으로 멜라닌을 읽고,
+   「홍조 있음」 대신 연한 핑크인지 염증성 붉음인지를 남깁니다.
+   한 줄 문자열로 tp_skintype_detail 칸에 저장됩니다.
+   ═══════════════════════════════════════════════════════════ */
+const VR = [
+  { k:"tone",  t:"피부톤",     hint:"멜라닌 — 색소·홍조가 어떻게 올라올지를 가릅니다", one:true,
+    o:[["I","아주 흰"],["II","흰"],["III","중간"],["IV","올리브·황"],["V","갈색"],["VI","짙은 갈색"]] },
+  { k:"hair",  t:"머리카락",   one:true,
+    o:[["흑","흑색"],["진갈","진갈색"],["밝갈","밝은 갈색"],["금","금발"],["적","적발"],["백","회·백발"]] },
+  { k:"eye",   t:"눈동자",     hint:"밝을수록 멜라닌이 적어 자외선에 약합니다", one:true,
+    o:[["흑","검정"],["갈","갈색"],["연갈","연갈색"],["초","초록"],["파","파랑"],["회","회색"]] },
+  { k:"red",   t:"홍조 정도",  one:true,
+    o:[["없","없음"],["핑","연한 핑크"],["붉","선명한 붉음"],["염","염증성 붉음"]] },
+  { k:"redz",  t:"홍조 부위",
+    o:[["코","코"],["볼","볼"],["이","이마"],["턱","턱"],["전","얼굴 전체"]] },
+  { k:"pore",  t:"코 모공",    hint:"모공이 크면 피지가 많은 쪽입니다", one:true,
+    o:[["안","거의 안 보임"],["보","보임"],["뚜","뚜렷"],["확","확장"]] },
+  { k:"porez", t:"모공 상태",
+    o:[["막","막혀 있음"],["빔","속은 비어 있음"],["늘","늘어져 있음"]] },
+  { k:"acne",  t:"여드름 종류", hint:"종류마다 원인도 관리도 다릅니다",
+    o:[["없","없음"],["화","화이트헤드"],["구","구진성"],["농","농포성"],
+       ["결","결절성"],["낭","낭종성"],["지","지루성(말라세지아)"],["호","호르몬성"]] },
+  { k:"acnen", t:"여드름 개수", one:true, when:"acne",
+    o:[["둘","한두 개"],["5","5개 이하"],["10","10개 이상"],["20","20개 이상"]] },
+  { k:"acnez", t:"여드름 부위", when:"acne",
+    o:[["이","이마"],["볼","볼"],["턱","턱·턱선"],["입","입 주변"],["코","코·나비존"],["몸","등·가슴"]] },
+  { k:"bh",    t:"블랙헤드",   one:true, hint:"개방면포 — 열린 모공 속 피지가 산화된 것",
+    o:[["없","없음"],["약","약간"],["많","많음"]] },
+  { k:"pig",   t:"색소",
+    o:[["없","없음"],["주","주근깨"],["기","기미·다크스팟"],["흉","흉터·자국"],["눈","눈가 착색"]] },
+  { k:"etc",   t:"그 외",
+    o:[["수","수염 많음"],["각","각질"],["얇","피부 얇음"],["탄","탄력 좋음"],["화","화장 진함"],["햇","햇빛 노출 많음"]] }
+];
+let vrPick = {};   /* { tone:"III", redz:["코","볼"], ... } */
+
+/* 여드름 종류별 구별 포인트 — 누르는 순간 기준을 띄워줍니다.
+   level: 2 = 우리가 손대면 안 되는 것 (피부과), 1 = 일반 여드름 케어로 안 잡히는 것 */
+const ACNE_INFO = {
+  "화": { p:"표면이 매끈하고 하얀 좁쌀. 고름도 통증도 없습니다.", level:0 },
+  "구": { p:"붉고 단단하게 솟았고 고름은 없습니다. 약간 아픕니다.", level:0 },
+  "농": { p:"붉은 염증 위에 흰색·노란 고름이 보입니다.", level:0 },
+  "결": { p:"크고 단단하며 피부 속 깊은 곳에 만져집니다. 통증이 강합니다.",
+          w:"압출하지 마세요. 피부과 치료 대상입니다 — 진정 케어까지만.", level:2 },
+  "낭": { p:"크고 깊고 많이 아픕니다. 고름이 차 있고 흉터가 남기 쉽습니다.",
+          w:"절대 건드리지 마세요. 피부과 의뢰 대상입니다.", level:2 },
+  "지": { p:"작고 균일한 붉은 좁쌀이 이마·가슴·등·두피에 퍼져 있습니다.",
+          w:"곰팡이균(말라세지아)입니다. 일반 여드름 케어로는 안 잡힙니다 — 항균 케어로.", level:1 },
+  "호": { p:"턱·턱선·입 주변 하관에 주기적으로 되풀이됩니다.", level:0 }
+};
+function acneNoteHTML(){
+  const cur = vrPick.acne;
+  if(!Array.isArray(cur) || !cur.length) return "";
+  const rows = cur.filter(function(c){ return ACNE_INFO[c]; }).map(function(c){
+    const i = ACNE_INFO[c];
+    const name = (function(){ for(const g of VR) if(g.k==="acne") for(const o of g.o) if(o[0]===c) return o[1]; return c; })();
+    return '<div class="acne-note' + (i.level===2?' lv2':(i.level===1?' lv1':'')) + '">' +
+           '<b>' + name + '</b> ' + i.p + (i.w ? '<span class="acne-warn">' + i.w + '</span>' : '') + '</div>';
+  });
+  return rows.join("");
+}
+
+function buildVisualRead(){
+  const el = document.getElementById("vr-wrap"); if(!el) return;
+  el.innerHTML = VR.map(function(g){
+    const cur = vrPick[g.k];
+    /* 여드름이 있을 때만 개수·부위를 보여줍니다 — 없으면 묻지 않습니다 */
+    if(g.when){
+      const par = vrPick[g.when];
+      const on = Array.isArray(par) ? par.filter(function(x){ return x!=="없"; }).length > 0 : false;
+      if(!on) return "";
+    }
+    return '<div class="vr-row">' +
+      '<div class="vr-lbl">' + g.t +
+        (g.hint ? '<span class="vr-hint">' + g.hint + '</span>' : '') + '</div>' +
+      '<div class="vr-opts">' + g.o.map(function(o){
+        const on = g.one ? (cur === o[0]) : (Array.isArray(cur) && cur.indexOf(o[0]) > -1);
+        return '<button type="button" class="vr-btn' + (on?' on':'') + '" ' +
+               'onclick="vrTap(\'' + g.k + '\',\'' + o[0] + '\',' + (g.one?1:0) + ')">' + o[1] + '</button>';
+      }).join('') +
+      (g.k === "acne" ? acneNoteHTML() : "") +
+      '</div></div>';
+  }).join('');
+}
+window.vrTap = function(k, v, one){
+  if(one){ vrPick[k] = (vrPick[k] === v) ? null : v; }
+  else {
+    if(!Array.isArray(vrPick[k])) vrPick[k] = [];
+    const i = vrPick[k].indexOf(v);
+    if(i > -1) vrPick[k].splice(i,1); else vrPick[k].push(v);
+    /* 「없음」과 다른 항목은 같이 켜지지 않습니다 */
+    if(v === "없" && i < 0) vrPick[k] = ["없"];
+    else if(v !== "없") vrPick[k] = vrPick[k].filter(function(x){ return x !== "없"; });
+  }
+  if(k === "acne" && (!Array.isArray(vrPick.acne) ||
+      !vrPick.acne.filter(function(x){ return x!=="없"; }).length)){
+    delete vrPick.acnen; delete vrPick.acnez;   /* 여드름을 지우면 딸린 것도 지웁니다 */
+  }
+  buildVisualRead();
+};
+/* 사람이 읽을 한 줄로 */
+function vrText(){
+  const lbl = function(g, code){ for(const o of g.o){ if(o[0]===code) return o[1]; } return code; };
+  const out = [];
+  VR.forEach(function(g){
+    const cur = vrPick[g.k];
+    if(g.one){ if(cur) out.push(g.t + " " + lbl(g,cur)); }
+    else if(Array.isArray(cur) && cur.length) out.push(g.t + " " + cur.map(function(c){ return lbl(g,c); }).join(", "));
+  });
+  return out.join(" | ");
+}
+/* 저장된 한 줄을 다시 버튼으로 */
+function vrLoad(saved){
+  vrPick = {};
+  const lblToCode = function(g, label){ for(const o of g.o){ if(o[1]===label) return o[0]; } return null; };
+  String(saved||"").split("|").map(function(x){ return x.trim(); }).filter(Boolean).forEach(function(part){
+    for(const g of VR){
+      if(part.indexOf(g.t + " ") === 0){
+        const rest = part.slice(g.t.length + 1).trim();
+        if(g.one){ const c = lblToCode(g, rest); if(c) vrPick[g.k] = c; }
+        else {
+          const arr = [];
+          rest.split(",").map(function(x){ return x.trim(); }).filter(Boolean).forEach(function(tok){
+            const c = lblToCode(g, tok);
+            if(c){ arr.push(c); return; }
+            /* 예전 기록은 ·로 이어져 있어 한 번 더 쪼개봅니다 */
+            tok.split("·").forEach(function(t2){ const c2 = lblToCode(g, t2.trim()); if(c2) arr.push(c2); });
+          });
+          if(arr.length) vrPick[g.k] = arr.filter(function(v,i,a){ return a.indexOf(v)===i; });
+        }
+        return;
+      }
+    }
+  });
+  buildVisualRead();
+}
+
+/* ── 같이 온 일행 ── */
+const COMPANION = ["혼자","친구","커플","모녀·가족","단체"];
+let compPick = null;
+function buildCompanion(){
+  const el = document.getElementById("comp-wrap"); if(!el) return;
+  el.innerHTML = COMPANION.map(function(c){
+    return '<button type="button" class="opt-btn' + (compPick===c?' sel-client':'') +
+           '" onclick="compTap(\'' + c + '\')">' + c + '</button>';
+  }).join('');
+}
+window.compTap = function(c){ compPick = (compPick===c)?null:c; buildCompanion(); };
+function companionText(){
+  const who = (document.getElementById("comp-who").value||"").trim();
+  if(!compPick && !who) return "";
+  return [compPick, who].filter(Boolean).join(" ");
+}
+
 function buildVisualScores(){
   const el=document.getElementById("visual-scores"); if(!el)return;
   el.innerHTML="";
@@ -2532,11 +2717,10 @@ function buildVisualScores(){
     const row=document.createElement("div");
     row.className="compare-row";
     row.innerHTML=`<div class="compare-label">${cat}</div>
-      <div class="mini-scale" id="vs-b-${cat}"></div>
-      <div class="compare-arrow">→</div>
       <div class="mini-scale" id="vs-a-${cat}"></div>`;
     el.appendChild(row);
-    ["b","a"].forEach(tp=>{
+    /* 케어 전 점수는 받지 않습니다 — 「눈으로 본 것」이 그 자리를 대신합니다 */
+    ["a"].forEach(tp=>{
       const container=document.getElementById(`vs-${tp}-${cat}`);
       for(let i=1;i<=5;i++){
         const btn=document.createElement("button");
@@ -2568,13 +2752,13 @@ function initAll(){
   buildMulti("client-concerns","clientConcerns",DATA.clientConcerns,"sel-client");
   buildMulti("client-goals","clientGoals",DATA.clientGoals,"sel-client");
   buildMulti("tp-skintype","tpSkintype",DATA.tpSkintype,"sel-therapist");
-  buildMulti("tp-skintype2","tpSkintype2",DATA.tpSkintype2,"sel-therapist");
-  buildMulti("tp-goals","tpGoals",DATA.tpGoals,"sel-therapist");
   buildMulti("care-treatments","careTreatments",DATA.careTreatments,"sel-care");
   buildProductPicker();
   buildMulti("care-reaction","careReaction",DATA.careReaction,"sel-care");
   buildRadio("care-revisit","careRevisit",DATA.careRevisit,"sel-care");
   buildVisualScores();
+  buildVisualRead();
+  buildCompanion();
 }
 
 function updateVisitBadge(){
@@ -2678,7 +2862,6 @@ function buildSummary(){
     <div class="card result-section">
       <div class="card-title" style="color:var(--section-care)">케어 기록</div>
       <div class="result-row"><span class="result-key">시술</span><span class="result-val">${multi.careTreatments.join(", ")||"—"}</span></div>
-      <div class="result-row"><span class="result-key">케어 시간</span><span class="result-val">${document.getElementById("care-duration").value||"—"}분</span></div>
     </div>`;
 }
 
@@ -2733,18 +2916,22 @@ async function finalSave(){
     client_skintype: multi.clientSkintype||"",
     client_concerns: multi.clientConcerns.join("|"),
     client_goals: multi.clientGoals.join("|"),
-    client_memo: document.getElementById("client-memo").value,
+    client_memo: (function(){
+      const base = document.getElementById("client-memo").value || "";
+      const c = companionText();
+      return c ? (base + "\n[일행: " + c + "]") : base;
+    })(),
     tp_skintype: multi.tpSkintype.join("|"),
-    tp_skintype_detail: multi.tpSkintype2.join("|"),
+    tp_skintype_detail: vrText(),   /* 눈으로 본 것 — 세부 특성 칸을 이 자리로 씁니다 */
     tp_moisture: document.getElementById("tp-moisture").value,
     tp_sebum: document.getElementById("tp-sebum").value,
     tp_sensitivity: document.getElementById("tp-sensitivity").value,
-    tp_goals: [...multi.tpGoals, document.getElementById("tp-goal-custom").value].filter(Boolean).join("|"),
+    tp_goals: "",   /* 고객 추구미 — 앱에서 뺐습니다 (고객 체크리스트의 '원하는 것'과 겹침) */
     tp_notes: document.getElementById("tp-notes").value,
     ...vFlat,
     care_treatments: multi.careTreatments.join("|"),
     care_products: productsValue(),
-    care_duration: document.getElementById("care-duration").value,
+    care_duration: "",   /* 시간 — 프로그램 이름에 들어 있어 따로 받지 않습니다 */
     care_reaction: multi.careReaction.join("|"),
     care_homecare: "",   /* 홈케어는 전문가팁 메일에서 따로 씁니다 — 앱에서는 받지 않습니다 */
     care_revisit: multi.careRevisit||"",
@@ -2794,10 +2981,11 @@ function clearFormState(){
   multi={gender:null,age:null,clientSkintype:null,clientConcerns:[],clientGoals:[],
     tpSkintype:[],tpSkintype2:[],tpGoals:[],careTreatments:[],careReaction:[],careRevisit:null};
   pickedProducts = [];
+  vrPick = {}; compPick = null;
   visualScores={};
   ["client-name","client-email","therapist-name","nationality","client-memo",
-   "tp-moisture","tp-sebum","tp-sensitivity","tp-goal-custom","tp-notes",
-   "care-products","care-duration","care-next","care-summary"
+   "tp-moisture","tp-sebum","tp-sensitivity","tp-notes",
+   "care-products","care-next","care-summary","comp-who"
   ].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
   document.getElementById("visit-count").value="";
   document.getElementById("edit-banner-0").classList.remove("show");

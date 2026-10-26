@@ -84,16 +84,27 @@ textarea{resize:vertical;line-height:1.6;}
 .prod-count{font-size:11px;font-weight:600;color:var(--section-care);
   background:#F0F4F1;border-radius:999px;padding:2px 9px;margin-left:7px;vertical-align:middle;}
 .prod-row{display:flex;flex-wrap:wrap;gap:6px;}
-.prod-btn{padding:9px 12px;border:1px solid var(--border2);border-radius:2px;background:transparent;
+.prod-btn{padding:8px 11px;border:1px solid var(--border2);border-radius:2px;background:transparent;
   cursor:pointer;font-family:inherit;transition:all .13s;text-align:left;line-height:1.25;
-  display:inline-flex;align-items:center;gap:6px;}
+  display:inline-flex;align-items:center;gap:7px;}
 .prod-btn .pnum{flex:0 0 18px;height:18px;border-radius:50%;background:var(--section-care);color:#fff;
   font-size:10.5px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;}
+/* ★ 제품 색 — 병 색깔을 그대로 보여줍니다. 이름을 몰라도 색으로 찾습니다 */
+.prod-btn .pdot{flex:0 0 15px;width:15px;height:15px;border-radius:50%;
+  border:1px solid rgba(0,0,0,.14);box-shadow:inset 0 -2px 3px rgba(0,0,0,.07);}
+.prod-btn .pdot.none{background:transparent;border:1.5px dashed #C9C4BA;box-shadow:none;}
+.prod-btn .ptxt{display:block;}
 .prod-btn .pko{display:block;font-size:13px;color:var(--muted);}
+.prod-btn .pen{display:block;font-size:10.5px;color:#A9A298;letter-spacing:.01em;margin-top:1px;}
 .prod-btn:hover{border-color:var(--accent2);}
 .prod-btn:hover .pko{color:var(--accent);}
 .prod-btn.on{border-color:var(--section-care);background:#4A7C5914;}
 .prod-btn.on .pko{color:var(--section-care);font-weight:700;}
+.prod-btn.on .pen{color:#6E9A7C;}
+.prod-legend{font-size:11px;color:var(--muted);margin:0 0 9px;line-height:1.75;}
+.prod-legend .lg{display:inline-flex;align-items:center;gap:4px;margin-right:9px;white-space:nowrap;}
+.prod-legend .lgd{width:11px;height:11px;border-radius:50%;border:1px solid rgba(0,0,0,.14);display:inline-block;}
+.prod-legend .lgd.none{background:transparent;border:1.5px dashed #C9C4BA;}
 .prod-picked{margin:12px 0 10px;padding:11px 12px;background:#FAFAF8;border-radius:4px;
   display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:42px;}
 .prod-tag{font-size:12px;padding:4px 10px 4px 6px;background:#fff;border:1px solid var(--border2);
@@ -2475,16 +2486,63 @@ const PRODUCTS = [
 /* 고른 순서를 그대로 기억합니다 — 누른 차례가 곧 시술 차례입니다 */
 let pickedProducts = [];
 
+/* ═══════════════════════════════════════════════════════════
+   제품 색 — 실제 병·내용물 색입니다.
+   한국어 이름을 모르는 테라피스트도 색으로 바로 집을 수 있게.
+   색을 모르는 것은 일부러 비워 두었습니다(점선 동그라미) —
+   엉뚱한 색을 칠해두면 오히려 잘못 집게 되기 때문입니다.
+   원장님이 알려주시면 여기 한 줄만 채우면 됩니다.
+   ═══════════════════════════════════════════════════════════ */
+const PAL = {
+  blue:  "#3C7FC4",  sky:   "#7FC0E0",  pink:  "#E89BB6",  lilac: "#AC9FD4",
+  purple:"#7C6FA0",  green: "#5BA87A",  mint:  "#79C9B6",  yellow:"#E8C44A",
+  orange:"#E8975A",  red:   "#CF6A66",  gold:  "#C9A24A",  beige: "#DCC9A8",
+  brown: "#8A6A4A",  black: "#3A352F",  white: "#F4F2EC",
+  clear: "linear-gradient(135deg,#FFFFFF 0%,#E7F1F6 100%)"
+};
+const PCOLOR = {
+  /* ── 원장님이 알려주신 것 ── */
+  "Soothing Mask (hydrogel)":        "blue",
+  "Hyazulene Pro Essence":           "blue",
+  "Azulene Cure Solution":           "blue",
+  "Azulene Crystal Mask":            "blue",
+  "Pinkrn Pro Essence":              "pink",
+  "Collagef Pro Essence":            "lilac",
+  /* ── 이름에서 확실한 것 ── */
+  "Milky Cleanser":                  "white",
+  "Rescuer Cica Pore":               "green",
+  "Rescuer Cica Balm":               "green",
+  "Rescuer Multi Vitamin":           "orange",
+  "Shining V-C Serum":               "yellow",
+  "Rescuer Microbiome Gold":         "gold",
+  "Vital Lift Pack Gold":            "gold",
+  "Gold Essential Mask":             "gold",
+  "Restoration Caviar Cream":        "black",
+  "UV Sun Cream":                    "white",
+  "PHA Soft Peel 15":                "clear",
+  "Enzyme Deep Cleanser":            "beige"
+  /* 나머지는 아직 모릅니다 — 점선으로 비어 있습니다 */
+};
+
 function buildProductPicker(){
   const el = document.getElementById("prodPick"); if(!el) return;
-  el.innerHTML = '<div class="prod-row">' + PRODUCTS.map(function(it, i){
+  el.innerHTML =
+    '<div class="prod-legend">병 색깔로 찾으세요 · 이름을 몰라도 됩니다.' +
+    '&nbsp;&nbsp;<span class="lg"><span class="lgd none"></span>색이 아직 안 정해진 제품</span></div>' +
+    '<div class="prod-row">' + PRODUCTS.map(function(it, i){
     const ko = it[0], en = it[1];
     const n = pickedProducts.indexOf(en);
+    const c = PCOLOR[en];
+    const dot = c
+      ? '<span class="pdot" style="background:' + PAL[c] + '"></span>'
+      : '<span class="pdot none"></span>';
     return '<button type="button" class="prod-btn' + (n>-1?' on':'') + '" ' +
            'data-en="' + en.replace(/"/g,'&quot;') + '" ' +
            'onclick="toggleProduct(' + i + ',this)">' +
            (n>-1 ? '<span class="pnum">' + (n+1) + '</span>' : '') +
-           '<span class="pko">' + ko + '</span></button>';
+           dot +
+           '<span class="ptxt"><span class="pko">' + ko + '</span>' +
+           '<span class="pen">' + en + '</span></span></button>';
   }).join('') + '</div>';
   paintPicked();
 }

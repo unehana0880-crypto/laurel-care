@@ -224,6 +224,27 @@ textarea{resize:vertical;line-height:1.6;}
   color:var(--muted);cursor:pointer;font-size:12px;font-family:inherit;transition:all .13s;}
 .grp-chip:hover{border-color:var(--accent2);}
 .grp-chip.sel{border-color:var(--section-care);background:#4A7C5914;color:var(--section-care);font-weight:700;}
+/* 단체처럼 사람이 많을 때 — 한 사람 한 줄 */
+.day-find{width:100%;padding:10px 12px;border:1px solid var(--border2);border-radius:2px;
+  background:transparent;color:var(--text);font-family:inherit;font-size:13px;margin-bottom:10px;}
+.day-find:focus{outline:none;border-color:var(--section-care);}
+.day-item{display:flex;align-items:center;gap:11px;padding:11px 13px;margin-bottom:6px;
+  border:1px solid var(--border);border-radius:3px;background:var(--surface);
+  cursor:pointer;transition:all .12s;}
+.day-item:hover{border-color:var(--section-edit);background:#B85C5C06;}
+.day-no{flex:0 0 24px;text-align:right;font-size:11px;color:var(--border2);}
+.day-code{flex:0 0 auto;min-width:52px;text-align:center;padding:4px 8px;border-radius:3px;
+  background:#4A7C5914;color:var(--section-care);font-size:14px;font-weight:700;
+  letter-spacing:.06em;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;}
+.day-main{flex:1;min-width:0;}
+.day-nm{font-size:15px;color:var(--text);line-height:1.4;}
+.day-sub{font-size:11px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.day-go{flex:0 0 auto;font-size:11px;color:var(--section-edit);border:1px solid var(--border2);
+  border-radius:2px;padding:5px 11px;white-space:nowrap;}
+.done-tag{display:inline-block;font-size:10.5px;font-weight:700;background:#8A817122;color:var(--muted);
+  border-radius:999px;padding:2px 9px;margin-left:6px;}
+.dup-tag{display:inline-block;font-size:10.5px;font-weight:700;background:#B85C5C1A;color:var(--danger);
+  border-radius:999px;padding:2px 9px;margin-left:6px;}
 .pre-tag{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.04em;
   background:#4A7C5918;color:var(--section-care);border-radius:999px;padding:2px 9px;margin-left:7px;}
 .grp-tag{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.04em;
@@ -2325,8 +2346,14 @@ function displaySearchResults(data, isToday) {
   if(isToday && dayGroupFilter){
     rows = rows.filter(r => groupOf(r) === dayGroupFilter);
   }
+  if(isToday && dayNameFilter.trim()){
+    const q = dayNameFilter.trim().toLowerCase();
+    rows = rows.filter(r => String(r.client_name||"").toLowerCase().indexOf(q) !== -1
+                         || String(r.client_email||"").toLowerCase().indexOf(q) !== -1
+                         || String(r.case_id||"").toLowerCase().indexOf(q) !== -1);   /* ★ 접수번호 4자리로도 */
+  }
 
-  if(rows.length === 0 && !(isToday && dayGroupFilter)){
+  if(rows.length === 0 && !(isToday && (dayGroupFilter || dayNameFilter.trim()))){
     resultsDiv.innerHTML = isToday
       ? '<div class="search-empty">' + dayName(data.date) + '에 오실 손님이 아직 없습니다</div>'
       : '<div class="search-empty">검색 결과가 없습니다</div>';
@@ -2357,11 +2384,52 @@ function displaySearchResults(data, isToday) {
             + '</div>';
     }
     if(rows.length === 0){
-      resultsDiv.innerHTML = html + '<div class="search-empty">그 단체 손님이 없습니다</div>';
+      resultsDiv.innerHTML = html
+        + (all.length >= 8 ? '<input class="day-find" id="day-find" placeholder="번호 4자리 또는 이름 (예: 7482)" value="'
+            + (dayNameFilter||"").replace(/"/g,"&quot;") + '" oninput="findInDay(this.value)">' : "")
+        + '<div class="search-empty">찾으시는 손님이 없습니다</div>';
       window._searchResults = [];
+      const el = document.getElementById("day-find");
+      if(el){ el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
       return;
     }
-    html += `<div style="font-size:11px;color:var(--muted);margin-bottom:14px">이름을 누르면 기록이 열립니다</div>`;
+    if(all.length >= 8){
+      html += '<input class="day-find" id="day-find" placeholder="번호 4자리 또는 이름 (예: 7482)" '
+            + 'value="' + (dayNameFilter||"").replace(/"/g,"&quot;") + '" oninput="findInDay(this.value)">';
+    }
+    html += `<div style="font-size:11px;color:var(--muted);margin-bottom:10px">초록 숫자는 <b>손님이 받은 접수 번호</b>입니다 — 이름이 비슷하면 번호로 물어보세요</div>`;
+
+    /* 같은 메일이 두 번 들어온 것 — 단체는 중복 제출이 종종 생깁니다 */
+    const seen = {};
+    all.forEach(r => { const e = String(r.client_email||"").toLowerCase().trim(); if(e) seen[e] = (seen[e]||0) + 1; });
+
+    html += rows.map((r, idx) => {
+      const nm = r.client_name || "이름 없음";
+      const g  = groupOf(r);
+      const em = String(r.client_email||"").toLowerCase().trim();
+      const dup = em && seen[em] > 1;
+      const done = String(r.therapist_name||"").trim();
+      const code = String(r.case_id||"").slice(-4);
+      const age  = String(r.age_group||"").trim();
+      return '<div class="day-item" onclick="loadRecord(' + idx + ')">'
+           + '<span class="day-no">' + (idx+1) + '</span>'
+           + (code ? '<span class="day-code">' + code + '</span>' : "")
+           + '<span class="day-main">'
+           +   '<span class="day-nm">' + nm
+           +     (g ? '<span class="grp-tag">🎟 ' + g + '</span>' : "")
+           +     (done ? '<span class="done-tag">담당 ' + done + '</span>'
+                       : (isPre(r) ? '<span class="pre-tag">케어 전</span>' : ""))
+           +     (dup ? '<span class="dup-tag">중복?</span>' : "")
+           +   '</span>'
+           +   '<span class="day-sub">' + (age ? age + ' · ' : "") + (r.client_email || "메일 없음") + '</span>'
+           + '</span>'
+           + '<span class="day-go">열기 →</span>'
+           + '</div>';
+    }).join("");
+
+    resultsDiv.innerHTML = html;
+    window._searchResults = rows;
+    return;
   } else {
     html += `<div style="font-size:12px;color:var(--muted);margin-bottom:16px;font-style:italic">검색 결과 ${data.total}건 (최신 ${data.showing}건 표시)</div>`;
   }
@@ -2416,12 +2484,13 @@ function dayName(s){
   return base;
 }
 let dayGroupFilter = null;   /* 단체 이름으로 거르기 */
+let dayNameFilter  = "";     /* 사람이 많을 때 이름으로 좁히기 */
 
 window.loadDay = function(n){ loadDayDate(dayStr(n)); };
 
 window.loadDayDate = async function(date){
   if(!date) return;
-  dayGroupFilter = null;
+  dayGroupFilter = null; dayNameFilter = "";
   [0,1,2].forEach(i => {
     const b = document.getElementById("day-" + i);
     if(b) b.className = "day-btn" + (dayStr(i) === date ? " sel" : "");
@@ -2456,7 +2525,14 @@ function isPre(r){
 }
 window.pickGroup = function(g){
   dayGroupFilter = (dayGroupFilter === g) ? null : g;
+  dayNameFilter = "";
   displaySearchResults(window._searchRaw, true);
+};
+window.findInDay = function(v){
+  dayNameFilter = String(v||"");
+  displaySearchResults(window._searchRaw, true);
+  const el = document.getElementById("day-find");
+  if(el){ el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
 };
 
 function loadRecord(idx) {

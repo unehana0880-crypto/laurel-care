@@ -209,6 +209,25 @@ textarea{resize:vertical;line-height:1.6;}
 .result-meta-item{display:flex;gap:4px;align-items:center;}
 .result-edit-info{font-size:11px;color:var(--warn);font-style:italic;margin-top:6px;}
 .result-edit-btn{margin-top:10px;padding:6px 16px;background:var(--section-edit);color:white;border:none;border-radius:2px;cursor:pointer;font-size:11px;letter-spacing:1px;font-family:'DM Sans',sans-serif;text-transform:uppercase;}
+/* ── 날짜 넘기기 · 단체 거르기 (사전접수용) ───────────────── */
+.day-row{display:flex;gap:7px;margin-top:14px;flex-wrap:wrap;align-items:center;}
+.day-btn{flex:1;min-width:92px;padding:11px 8px;border:1px solid var(--border2);border-radius:2px;
+  background:transparent;color:var(--muted);cursor:pointer;font-size:12.5px;font-family:inherit;
+  transition:all .15s;white-space:nowrap;}
+.day-btn:hover{border-color:var(--section-edit);color:var(--section-edit);}
+.day-btn.sel{border-color:var(--section-care);background:#4A7C5914;color:var(--section-care);font-weight:700;}
+.day-date{flex:0 0 150px;padding:10px;border:1px solid var(--border2);border-radius:2px;
+  background:transparent;color:var(--text);font-family:inherit;font-size:12.5px;}
+.grp-row{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 14px;align-items:center;}
+.grp-lbl{font-size:11px;color:var(--muted);margin-right:3px;}
+.grp-chip{padding:5px 13px;border:1px solid var(--border2);border-radius:999px;background:transparent;
+  color:var(--muted);cursor:pointer;font-size:12px;font-family:inherit;transition:all .13s;}
+.grp-chip:hover{border-color:var(--accent2);}
+.grp-chip.sel{border-color:var(--section-care);background:#4A7C5914;color:var(--section-care);font-weight:700;}
+.pre-tag{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.04em;
+  background:#4A7C5918;color:var(--section-care);border-radius:999px;padding:2px 9px;margin-left:7px;}
+.grp-tag{display:inline-block;font-size:10.5px;font-weight:700;letter-spacing:.04em;
+  background:#C8A96E22;color:#8A6A2E;border-radius:999px;padding:2px 9px;margin-left:5px;}
 
 .search-empty{text-align:center;padding:40px 20px;color:var(--muted);font-style:italic;font-family:'Cormorant Garamond',serif;}
 .search-loading{text-align:center;padding:30px;color:var(--muted);}
@@ -515,8 +534,14 @@ textarea{resize:vertical;line-height:1.6;}
       <input type="text" id="search-input" placeholder="검색어 입력 후 검색 버튼 클릭" onkeypress="if(event.key==='Enter')doSearch()">
       <button class="search-btn" id="search-btn" onclick="doSearch()">🔍 검색하기</button>
     </div>
-    <div class="search-input-row" style="margin-top:10px">
-      <button class="search-btn" style="flex:1;background:#2D5A3D" onclick="loadTodayList()">📋 오늘 방문 고객 목록</button>
+    <div class="day-row">
+      <button class="day-btn" id="day-0" onclick="loadDay(0)">📋 오늘 방문</button>
+      <button class="day-btn" id="day-1" onclick="loadDay(1)">📅 내일 예약</button>
+      <button class="day-btn" id="day-2" onclick="loadDay(2)">📅 모레</button>
+      <input type="date" class="day-date" id="day-pick" onchange="loadDayDate(this.value)">
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:9px;line-height:1.6">
+      사전 접수한 손님은 <b>방문하기로 한 날</b>에 뜹니다 — 내일 오실 단체는 「내일 예약」에서 찾으세요.
     </div>
   </div>
 
@@ -2292,30 +2317,70 @@ async function doSearch() {
 
 function displaySearchResults(data, isToday) {
   const resultsDiv = document.getElementById("search-results");
-  if(!data.results || data.results.length === 0){
+  if(isToday) window._searchRaw = data;
+
+  let rows = (data && data.results) ? data.results.slice() : [];
+
+  /* 단체 거르기 — 고른 단체만 남깁니다 */
+  if(isToday && dayGroupFilter){
+    rows = rows.filter(r => groupOf(r) === dayGroupFilter);
+  }
+
+  if(rows.length === 0 && !(isToday && dayGroupFilter)){
     resultsDiv.innerHTML = isToday
-      ? '<div class="search-empty">오늘 방문하신 고객이 아직 없습니다</div>'
+      ? '<div class="search-empty">' + dayName(data.date) + '에 오실 손님이 아직 없습니다</div>'
       : '<div class="search-empty">검색 결과가 없습니다</div>';
     window._searchResults = [];
     return;
   }
-  let html = isToday
-    ? `<div style="font-size:13px;color:var(--section-edit);margin-bottom:16px;font-weight:600">📋 오늘 방문 ${data.total}명 · 이름을 누르면 기록이 열립니다 ${data.date?("· "+data.date):""}</div>`
-    : `<div style="font-size:12px;color:var(--muted);margin-bottom:16px;font-style:italic">검색 결과 ${data.total}건 (최신 ${data.showing}건 표시)</div>`;
-  data.results.forEach((r, idx) => {
+
+  let html = "";
+  if(isToday){
+    const all = (data.results || []);
+    const pre = all.filter(isPre).length;
+    html += `<div style="font-size:13px;color:var(--section-edit);margin-bottom:10px;font-weight:600">`
+          + `📋 ${dayName(data.date)} · ${all.length}명`
+          + (pre ? ` <span class="pre-tag">사전접수 ${pre}</span>` : "")
+          + `</div>`;
+    /* 그날 들어온 단체들 — 누르면 그 단체만 보입니다 */
+    const groups = [];
+    all.forEach(r => { const g = groupOf(r); if(g && groups.indexOf(g) === -1) groups.push(g); });
+    if(groups.length){
+      html += '<div class="grp-row"><span class="grp-lbl">단체</span>'
+            + '<button class="grp-chip' + (dayGroupFilter ? "" : " sel") + '" onclick="pickGroup(null)">전체 ' + all.length + '</button>'
+            + groups.map(g => {
+                const n = all.filter(r => groupOf(r) === g).length;
+                return '<button class="grp-chip' + (dayGroupFilter === g ? " sel" : "") + '" '
+                     + 'onclick="pickGroup(' + JSON.stringify(g).replace(/"/g,"&quot;") + ')">'
+                     + g + ' ' + n + '</button>';
+              }).join("")
+            + '</div>';
+    }
+    if(rows.length === 0){
+      resultsDiv.innerHTML = html + '<div class="search-empty">그 단체 손님이 없습니다</div>';
+      window._searchResults = [];
+      return;
+    }
+    html += `<div style="font-size:11px;color:var(--muted);margin-bottom:14px">이름을 누르면 기록이 열립니다</div>`;
+  } else {
+    html += `<div style="font-size:12px;color:var(--muted);margin-bottom:16px;font-style:italic">검색 결과 ${data.total}건 (최신 ${data.showing}건 표시)</div>`;
+  }
+
+  rows.forEach((r, idx) => {
     const editInfo = r.edit_count && parseInt(r.edit_count) > 0
       ? `<div class="result-edit-info">✎ ${r.last_edited_by||"-"} · ${(r.last_edited_at||"").split("T")[0]} · 수정 ${r.edit_count}회</div>`
       : "";
     html += `
       <div class="search-result-card" onclick="loadRecord(${idx})">
-        <div class="result-name">${r.client_name||"이름 없음"}</div>
+        <div class="result-name">${r.client_name||"이름 없음"}${
+          isPre(r) && !(r.therapist_name||"").trim() ? '<span class="pre-tag">사전접수 · 케어 전</span>' : ""
+        }${ groupOf(r) ? '<span class="grp-tag">🎟 '+groupOf(r)+'</span>' : "" }</div>
         <div class="result-meta">
           <span class="result-meta-item">📧 ${r.client_email||"-"}</span>
           <span class="result-meta-item">📅 ${r.visit_date||"-"}</span>
           <span class="result-meta-item">👤 담당: ${r.therapist_name||"-"}</span>
         </div>
         <div class="result-meta">
-          <span class="result-meta-item">⏱️ ${r.care_duration||"-"}분</span>
           <span class="result-meta-item">🆔 ${r.case_id||"-"}</span>
         </div>
         ${(r.program||r.source) ? `<div class="result-meta">
@@ -2328,16 +2393,47 @@ function displaySearchResults(data, isToday) {
     `;
   });
   resultsDiv.innerHTML = html;
-  window._searchResults = data.results;
+  window._searchResults = rows;   /* 화면에 보이는 순서 그대로 — 수정하기가 엉뚱한 줄을 열지 않게 */
 }
 
-async function loadTodayList() {
+/* ── 날짜별 목록 ──────────────────────────────────────────
+   시트 쪽은 날짜를 받아줍니다(action:"today" + date).
+   오늘·내일·모레는 물론 아무 날짜나 볼 수 있습니다.      */
+function dayStr(n){
+  const d = new Date(); d.setDate(d.getDate() + n);
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+function dayName(s){
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || "");
+  if(!m) return s || "";
+  const d = new Date(+m[1], +m[2]-1, +m[3]);
+  const W = ["일","월","화","수","목","금","토"];
+  const base = (+m[2]) + "월 " + (+m[3]) + "일 (" + W[d.getDay()] + ")";
+  const diff = Math.round((d - new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate())) / 86400000);
+  if(diff === 0) return base + " · 오늘";
+  if(diff === 1) return base + " · 내일";
+  if(diff === 2) return base + " · 모레";
+  return base;
+}
+let dayGroupFilter = null;   /* 단체 이름으로 거르기 */
+
+window.loadDay = function(n){ loadDayDate(dayStr(n)); };
+
+window.loadDayDate = async function(date){
+  if(!date) return;
+  dayGroupFilter = null;
+  [0,1,2].forEach(i => {
+    const b = document.getElementById("day-" + i);
+    if(b) b.className = "day-btn" + (dayStr(i) === date ? " sel" : "");
+  });
+  const pick = document.getElementById("day-pick"); if(pick) pick.value = date;
+
   const resultsDiv = document.getElementById("search-results");
-  resultsDiv.innerHTML = '<div class="search-loading">📋 오늘 목록 불러오는 중...</div>';
+  resultsDiv.innerHTML = '<div class="search-loading">📋 ' + dayName(date) + ' 불러오는 중...</div>';
   try {
-    const payload = {action:"today", section:"CARE"};
-    const data = await callSheet(payload);
+    const data = await callSheet({action:"today", section:"CARE", date:date});
     if(data.status === "ok") {
+      data.date = date;
       displaySearchResults(data, true);
     } else {
       resultsDiv.innerHTML = '<div class="search-empty">⚠ ' + (data.message||"오류") + '</div>';
@@ -2346,7 +2442,22 @@ async function loadTodayList() {
     resultsDiv.innerHTML = '<div class="search-empty">⚠ ' + netReason(err) + '</div>';
     console.error(err);
   }
+};
+/* 예전 이름도 그대로 둡니다 */
+async function loadTodayList(){ return loadDayDate(dayStr(0)); }
+
+/* 메모에 적힌 [단체: ○○] 를 꺼냅니다 */
+function groupOf(r){
+  const m = /\[단체:\s*([^\]]+)\]/.exec(String((r && r.client_memo) || ""));
+  return m ? m[1].trim() : "";
 }
+function isPre(r){
+  return String((r && r.source) || "").indexOf("사전접수") !== -1;
+}
+window.pickGroup = function(g){
+  dayGroupFilter = (dayGroupFilter === g) ? null : g;
+  displaySearchResults(window._searchRaw, true);
+};
 
 function loadRecord(idx) {
   const r = window._searchResults[idx];
